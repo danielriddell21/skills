@@ -65,6 +65,15 @@
       ]
     },
     {
+      "name": "tldr",
+      "source": "./plugins/tldr",
+      "description": "Mod: /tldr summarizes the last answer on demand; modes off|on|auto|smart control Verdict/Why/Next answers and auto summaries",
+      "tags": [
+        "summary",
+        "mod"
+      ]
+    },
+    {
       "name": "matchmaker",
       "source": "./plugins/matchmaker",
       "description": "Mod: classifies each prompt (cheap model) and tells Claude which agent/model fits; band with off switch",

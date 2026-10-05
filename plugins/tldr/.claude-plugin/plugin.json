@@ -1,0 +1,15 @@
+{
+  "name": "tldr",
+  "version": "0.1.0",
+  "description": "Mod: /tldr summarizes the last answer on demand; modes off|on|auto|smart control Verdict/Why/Next answers and auto summaries",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "summary",
+    "mod"
+  ],
+  "license": "MIT"
+}

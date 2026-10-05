@@ -1,0 +1,10 @@
+{
+  "name": "danielriddell21-skills",
+  "owner": {
+    "name": "Daniel Riddell"
+  },
+  "metadata": {
+    "description": "Context hygiene, efficient model use, plugin dev tooling"
+  },
+  "plugins": []
+}

@@ -55,6 +55,16 @@
       ]
     },
     {
+      "name": "your-call",
+      "source": "./plugins/your-call",
+      "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), in-thread charts from fenced viz blocks, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
+      "tags": [
+        "decisions",
+        "ui",
+        "skills"
+      ]
+    },
+    {
       "name": "matchmaker",
       "source": "./plugins/matchmaker",
       "description": "Mod: classifies each prompt (cheap model) and tells Claude which agent/model fits; band with off switch",

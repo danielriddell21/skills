@@ -1,0 +1,18 @@
+{
+  "name": "your-call",
+  "version": "0.1.0",
+  "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), in-thread charts from fenced viz blocks, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "decisions",
+    "ui",
+    "charts",
+    "skills"
+  ],
+  "license": "MIT"
+}

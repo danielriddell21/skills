@@ -1,0 +1,15 @@
+{
+  "name": "are-we-there-yet",
+  "version": "0.1.0",
+  "description": "Live context % in the status line; toasts at 50/70/85%",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "context",
+    "mod"
+  ],
+  "license": "MIT"
+}

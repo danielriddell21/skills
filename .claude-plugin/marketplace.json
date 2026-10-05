@@ -6,5 +6,34 @@
   "metadata": {
     "description": "Context hygiene, efficient model use, plugin dev tooling"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "do-you-need-all-that",
+      "source": "./plugins/do-you-need-all-that",
+      "description": "Big-read guard, compaction snapshots, context audit",
+      "tags": [
+        "context",
+        "compaction",
+        "claude-md"
+      ]
+    },
+    {
+      "name": "are-we-there-yet",
+      "source": "./plugins/are-we-there-yet",
+      "description": "Mod: live context % status + threshold toasts",
+      "tags": [
+        "context",
+        "mod"
+      ]
+    },
+    {
+      "name": "whats-in-the-box",
+      "source": "./plugins/whats-in-the-box",
+      "description": "Mod: /whats-in-the-box live context breakdown pane",
+      "tags": [
+        "context",
+        "mod"
+      ]
+    }
+  ]
 }

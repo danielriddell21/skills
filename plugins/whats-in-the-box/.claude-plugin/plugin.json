@@ -1,0 +1,16 @@
+{
+  "name": "whats-in-the-box",
+  "version": "0.1.0",
+  "description": "Mod: /ctx opens a live pane with the context breakdown by category",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "context",
+    "mod"
+  ],
+  "license": "MIT"
+}

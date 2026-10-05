@@ -1,0 +1,15 @@
+{
+  "name": "are-you-sure-bro",
+  "version": "0.1.0",
+  "description": "Mod: confirms risky Bash commands; offers to cap output of noisy ones",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "safety",
+    "mod"
+  ],
+  "license": "MIT"
+}

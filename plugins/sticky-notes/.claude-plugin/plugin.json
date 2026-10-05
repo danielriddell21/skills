@@ -1,0 +1,16 @@
+{
+  "name": "sticky-notes",
+  "version": "0.1.0",
+  "description": "Mod: shared checklist pane (/sticky); the model edits it via a tool",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "tasks",
+    "mod"
+  ],
+  "license": "MIT"
+}

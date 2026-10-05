@@ -82,6 +82,24 @@
         "routing",
         "mod"
       ]
+    },
+    {
+      "name": "are-you-sure-bro",
+      "source": "./plugins/are-you-sure-bro",
+      "description": "Mod: confirms risky Bash commands; offers to cap output of noisy ones",
+      "tags": [
+        "safety",
+        "mod"
+      ]
+    },
+    {
+      "name": "sticky-notes",
+      "source": "./plugins/sticky-notes",
+      "description": "Mod: shared checklist pane (/sticky); the model edits it via a tool",
+      "tags": [
+        "tasks",
+        "mod"
+      ]
     }
   ]
 }

@@ -1,0 +1,65 @@
+{
+  "note": "Prompts each skill should and should not trigger on. Run with skill-creator's eval flow; not yet run.",
+  "skills": {
+    "where-did-my-tokens-go": {
+      "should": [
+        "why is my context filling up so fast",
+        "what is using all my tokens",
+        "audit my context usage"
+      ],
+      "should_not": [
+        "fix the failing test",
+        "explain how prompt caching works"
+      ]
+    },
+    "hey-you-do-it": {
+      "should": [
+        "investigate how auth works across the codebase then fix the bug",
+        "which agent should do this refactor"
+      ],
+      "should_not": [
+        "change the port in config.yml to 8080"
+      ]
+    },
+    "ask-dont-guess": {
+      "should": [
+        "clean up the old branches",
+        "migrate the database to the new schema",
+        "make the API faster"
+      ],
+      "should_not": [
+        "rename the variable foo to bar in utils.go as I said"
+      ]
+    },
+    "show-dont-tell": {
+      "should": [
+        "compare Redis, Memcached and in-memory caching for us",
+        "explain the request flow through these 5 services"
+      ],
+      "should_not": [
+        "what is 2+2",
+        "fix this typo"
+      ]
+    },
+    "phone-a-friend": {
+      "should": [
+        "get a second opinion on this migration plan",
+        "phone a friend: monolith or microservices?"
+      ],
+      "should_not": [
+        "rename this variable",
+        "what does this function do"
+      ]
+    },
+    "ask-the-audience": {
+      "should": [
+        "ask the audience: Redis, Memcached or in-memory?",
+        "poll a few agents on which approach is safest"
+      ],
+      "should_not": [
+        "fix this typo",
+        "run the tests"
+      ]
+    }
+  }
+}

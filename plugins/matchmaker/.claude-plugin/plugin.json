@@ -1,0 +1,17 @@
+{
+  "name": "matchmaker",
+  "version": "0.1.0",
+  "description": "Mod: classifies each prompt (cheap model) and tells Claude which agent/model fits; band with off switch",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "models",
+    "routing",
+    "mod"
+  ],
+  "license": "MIT"
+}

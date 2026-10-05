@@ -1,0 +1,15 @@
+{
+  "name": "stop-you-violated-the-law",
+  "version": "0.1.0",
+  "description": "Mod: STOP! You violated the law! toast when opus is used for a light turn",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "models",
+    "mod"
+  ],
+  "license": "MIT"
+}

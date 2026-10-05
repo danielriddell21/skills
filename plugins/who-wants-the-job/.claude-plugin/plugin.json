@@ -1,0 +1,16 @@
+{
+  "name": "who-wants-the-job",
+  "version": "0.1.0",
+  "description": "Right model for the job: pinned agents, routing, cost report",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "models",
+    "agents",
+    "cost"
+  ],
+  "license": "MIT"
+}

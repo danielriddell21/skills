@@ -18,6 +18,16 @@
       ]
     },
     {
+      "name": "who-wants-the-job",
+      "source": "./plugins/who-wants-the-job",
+      "description": "Model-pinned agents, task routing, cost report",
+      "tags": [
+        "models",
+        "agents",
+        "cost"
+      ]
+    },
+    {
       "name": "are-we-there-yet",
       "source": "./plugins/are-we-there-yet",
       "description": "Mod: live context % status + threshold toasts",
@@ -27,11 +37,30 @@
       ]
     },
     {
+      "name": "stop-you-violated-the-law",
+      "source": "./plugins/stop-you-violated-the-law",
+      "description": "Mod: \"STOP! You violated the law!\" toast when opus is used for a light turn",
+      "tags": [
+        "models",
+        "mod"
+      ]
+    },
+    {
       "name": "whats-in-the-box",
       "source": "./plugins/whats-in-the-box",
       "description": "Mod: /whats-in-the-box live context breakdown pane",
       "tags": [
         "context",
+        "mod"
+      ]
+    },
+    {
+      "name": "matchmaker",
+      "source": "./plugins/matchmaker",
+      "description": "Mod: classifies each prompt (cheap model) and tells Claude which agent/model fits; band with off switch",
+      "tags": [
+        "models",
+        "routing",
         "mod"
       ]
     }

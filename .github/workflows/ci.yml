@@ -1,0 +1,27 @@
+name: ci
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  repo:
+    name: manifests and shell hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get install -y jq
+      - run: scripts/validate.sh
+      - run: scripts/test-shell.sh
+
+  mods:
+    name: mod validation and tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: sudo apt-get install -y jq
+      - run: npm install -g @anthropic-ai/claude-code
+      - run: scripts/check-mods.sh

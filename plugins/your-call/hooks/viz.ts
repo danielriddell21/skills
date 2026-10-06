@@ -83,7 +83,8 @@ const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 
 /** SVG for bars and quadrant; undefined for types that stay text. */
 export const svgFor = (v: Viz, opts: Option[] = []): string | undefined => {
-  const ink = '#8a8a8a'
+  const ink = '#7d7d7d'
+  const font = 'font-family="system-ui,-apple-system,Segoe UI,sans-serif"'
 
   if (v.type === 'bars') {
     const rows = Object.entries(v.values)
@@ -95,7 +96,7 @@ export const svgFor = (v: Viz, opts: Option[] = []): string | undefined => {
         return `<text x="0" y="${y + 12}" font-size="12" fill="${ink}">${esc(labelOf(opts, k))}</text><rect x="110" y="${y}" width="${w}" height="16" rx="4" fill="#4a90d9"/><text x="${116 + w}" y="${y + 12}" font-size="12" fill="${ink}">${n}</text>`
       })
       .join('')
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 340 ${40 + rows.length * 26}"><text x="0" y="14" font-size="13" font-weight="600" fill="${ink}">${esc(v.title ?? '')}</text>${body}</svg>`
+    return `<svg xmlns="http://www.w3.org/2000/svg" ${font} viewBox="0 0 340 ${40 + rows.length * 26}"><text x="0" y="14" font-size="13" font-weight="600" fill="${ink}">${esc(v.title ?? '')}</text>${body}</svg>`
   }
 
   if (v.type === 'quadrant') {
@@ -103,10 +104,11 @@ export const svgFor = (v: Viz, opts: Option[] = []): string | undefined => {
       .map(p => {
         const cx = 40 + (p.x / 10) * 240
         const cy = 150 - (p.y / 10) * 130
-        return `<circle cx="${cx}" cy="${cy}" r="7" fill="#4a90d9"/><text x="${cx + 11}" y="${cy + 4}" font-size="12" fill="${ink}">${esc(pointLabel(opts, p))}</text>`
+        const left = cx > 200
+        return `<circle cx="${cx}" cy="${cy}" r="7" fill="#4a90d9"/><text x="${left ? cx - 11 : cx + 11}" y="${cy + 4}" ${left ? 'text-anchor="end" ' : ''}font-size="12" fill="${ink}">${esc(pointLabel(opts, p))}</text>`
       })
       .join('')
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 190"><text x="0" y="12" font-size="13" font-weight="600" fill="${ink}">${esc(v.title ?? '')}</text><rect x="40" y="20" width="240" height="130" fill="none" stroke="${ink}" opacity=".5"/><line x1="160" y1="20" x2="160" y2="150" stroke="${ink}" opacity=".25"/><line x1="40" y1="85" x2="280" y2="85" stroke="${ink}" opacity=".25"/>${dots}<text x="160" y="176" font-size="11" text-anchor="middle" fill="${ink}">${esc(v.x)} →</text><text x="10" y="85" font-size="11" text-anchor="middle" fill="${ink}" transform="rotate(-90 10 85)">${esc(v.y)} →</text></svg>`
+    return `<svg xmlns="http://www.w3.org/2000/svg" ${font} viewBox="0 0 320 190"><text x="0" y="12" font-size="13" font-weight="600" fill="${ink}">${esc(v.title ?? '')}</text><rect x="40" y="20" width="240" height="130" fill="none" stroke="${ink}" opacity=".5"/><line x1="160" y1="20" x2="160" y2="150" stroke="${ink}" opacity=".25"/><line x1="40" y1="85" x2="280" y2="85" stroke="${ink}" opacity=".25"/>${dots}<text x="160" y="176" font-size="11" text-anchor="middle" fill="${ink}">${esc(v.x)} →</text><text x="10" y="85" font-size="11" text-anchor="middle" fill="${ink}" transform="rotate(-90 10 85)">${esc(v.y)} →</text></svg>`
   }
 
   return undefined

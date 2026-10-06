@@ -4,13 +4,28 @@ import type { Register } from 'claude-code'
 const route = atom({ plugin: 'matchmaker', key: 'route' } as const, null)
 const isOff = atom({ plugin: 'matchmaker', key: 'isOff' } as const, false)
 
-const LABELS = ['search', 'implement', 'design', 'review', 'trivial'] as const
+export const LABELS = [
+  'search',
+  'implement',
+  'design',
+  'review',
+  'trivial',
+  'destructive-or-ambiguous',
+  'compare-or-explain-flow',
+  'second-opinion',
+] as const
 export const HINT: Record<string, string> = {
   search: 'Route: read/search-heavy. Delegate the sweep to the `scout` agent (haiku); take back a summary. See skill hey-you-do-it.',
   implement: 'Route: clear implementation. Use `engineer` (sonnet) if the change spans several files.',
   design: 'Route: ambiguous/cross-cutting. Plan with `spy` (opus) first, then implement.',
   review: 'Route: review. Use `sniper` (opus) on the diff.',
   trivial: 'Route: trivial. Do it inline; no subagent.',
+  'destructive-or-ambiguous':
+    'Route: this request may be destructive, irreversible or ambiguous. If the ask-dont-guess skill is available, follow it: list assumptions and confirm with the user (mcp__your-call__ask) before acting.',
+  'compare-or-explain-flow':
+    'Route: comparison or structure. If the show-dont-tell skill is available, follow it: answer with a chart or diagram (a fenced viz block) rather than prose alone.',
+  'second-opinion':
+    'Route: the user wants a second opinion. If the phone-a-friend or ask-the-audience skill is available, follow it.',
 }
 
 export const shouldClassify = (text: string, hasOrigin: boolean, isOffNow: boolean, minChars = 40): boolean => {
@@ -49,14 +64,22 @@ export const register: Register = (on, options) => {
     if (e.props.hasSurvey || (r === null && !off)) return next(e)
 
     const { Box, Text, Button } = $.ui.resolve(e)
+    const rest = await next(e)
 
     return (
-      <Box>
-        <Text dimColor>{off ? 'matchmaker off ' : `route: ${r} `}</Text>
-        <Button key="toggle" label={off ? 'On' : 'Off'} onPress={async () => {
-            const v = await update($, isOff, x => !x)
-            await $.store.set('isOff', v)
-          }} />
+      <Box flexDirection="column">
+        <Box>
+          <Text dimColor>{off ? 'matchmaker off ' : `route: ${r} `}</Text>
+          <Button
+            key="toggle"
+            label={off ? 'On' : 'Off'}
+            onPress={async () => {
+              const v = await update($, isOff, x => !x)
+              await $.store.set('isOff', v)
+            }}
+          />
+        </Box>
+        {rest}
       </Box>
     )
   })

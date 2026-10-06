@@ -1,7 +1,7 @@
 {
   "name": "are-we-there-yet",
   "version": "0.2.0",
-  "description": "Live context % in the status line; toasts at 50/70/85%",
+  "description": "Mod: ctx % in the status line, toasts as context fills, and a Compact button above the prompt at the urgent level",
   "author": {
     "name": "Daniel Riddell"
   },
@@ -30,6 +30,13 @@
       "title": "Urgent at %",
       "description": "Context % for the compact-or-clear toast",
       "default": 85
+    },
+    "compactButton": {
+      "type": "boolean",
+      "title": "Compact button",
+      "description": "At the urgent level, show a band with a Compact button",
+      "default": true
     }
-  }
+  },
+  "types": "./types/index.d.ts"
 }

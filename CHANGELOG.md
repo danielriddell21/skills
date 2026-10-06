@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.3.0 (unreleased)
+
+- `matchmaker` also classifies destructive/ambiguous requests, comparisons and second-opinion requests and attaches the matching skill hint, so skills fire on implicit requests.
+- New `how-did-that-go`: turn summary band (files, tests, time, cost).
+- `are-we-there-yet`: Compact button above the prompt at the urgent level. It uses `$.command.run`; the host refuses `$.prompt.submit` with a leading `/`.
+- Bands (`whats-in-the-box`, `matchmaker`, `are-we-there-yet`, `how-did-that-go`) now compose with each other instead of hiding one another.
+
 ## 0.2.0
 
 - `whats-in-the-box`: colored context bar above the prompt (per-category segments, legend, Details button).

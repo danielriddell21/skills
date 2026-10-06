@@ -1,6 +1,6 @@
 import { expect, test } from 'claude-code/testing'
 
-import { nextWarning, stepsFor } from './register'
+import { nextWarning, showCompact, stepsFor } from './register'
 
 test('warns once per level, escalates, resets below 40', () => {
   expect(nextWarning(30, 0)).toEqual({ warned: 0 })
@@ -18,4 +18,9 @@ test('custom thresholds', () => {
   expect(nextWarning(65, 30, s).text).toContain('60%')
   expect(nextWarning(95, 60, s).text).toContain('90%')
   expect(nextWarning(10, 90, s)).toEqual({ warned: 0 })
+})
+
+test('compact button only from the urgent level', () => {
+  expect(showCompact(84, 85)).toBe(false)
+  expect(showCompact(85, 85)).toBe(true)
 })

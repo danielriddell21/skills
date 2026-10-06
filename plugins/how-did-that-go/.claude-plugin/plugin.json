@@ -1,0 +1,15 @@
+{
+  "name": "how-did-that-go",
+  "version": "0.2.0",
+  "description": "Mod: one-line band after each working turn: files changed, tests, time, cost, with expandable details",
+  "types": "./types/index.d.ts",
+  "author": { "name": "Daniel Riddell" },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": ["summary", "cost", "mod"],
+  "license": "MIT",
+  "userConfig": {
+    "minTools": { "type": "number", "title": "Minimum tool calls", "description": "Only show the band for turns with at least this many tool calls", "default": 1 },
+    "showCost": { "type": "boolean", "title": "Show cost", "description": "Include the turn's cost when the session reports one", "default": true }
+  }
+}

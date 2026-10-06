@@ -30,7 +30,7 @@
     {
       "name": "are-we-there-yet",
       "source": "./plugins/are-we-there-yet",
-      "description": "Mod: live context % status + threshold toasts",
+      "description": "Mod: ctx % in the status line, toasts as context fills, and a Compact button above the prompt at the urgent level",
       "tags": [
         "context",
         "mod"
@@ -76,7 +76,7 @@
     {
       "name": "matchmaker",
       "source": "./plugins/matchmaker",
-      "description": "Mod: classifies each prompt (cheap model) and tells Claude which agent/model fits; band with off switch",
+      "description": "Mod: classifies each prompt, hints which agent to use, and points Claude at the right skill (ask-dont-guess, show-dont-tell, phone-a-friend)",
       "tags": [
         "models",
         "routing",
@@ -98,6 +98,16 @@
       "description": "Mod: shared checklist pane (/sticky); the model edits it via a tool",
       "tags": [
         "tasks",
+        "mod"
+      ]
+    },
+    {
+      "name": "how-did-that-go",
+      "source": "./plugins/how-did-that-go",
+      "description": "Mod: one-line band after each working turn: files changed, tests, time, cost, with expandable details",
+      "tags": [
+        "summary",
+        "cost",
         "mod"
       ]
     }

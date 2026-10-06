@@ -71,6 +71,7 @@ export const register: Register = (on, options) => {
     if (options.band === false || e.props.hasSurvey || !s || s.percent < min) return next(e)
 
     const { Box, Text, Button } = $.ui.resolve(e)
+    const rest = await next(e)
     const cells = barCells(s.rows, s.max, BAR_WIDTH)
     const used = cells.reduce((n, c) => n + c.cells, 0)
     const color = (name: string) => PALETTE[Math.max(0, s.rows.findIndex(r => r.name === name)) % PALETTE.length]
@@ -79,6 +80,7 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
+        <Box flexDirection="column">
         <Box>
           <Text bold>ctx </Text>
           {cells.map(c => (
@@ -99,6 +101,8 @@ export const register: Register = (on, options) => {
           ))}
           {hidden > 0 && <Text dimColor>+{hidden} more</Text>}
         </Box>
+        </Box>
+        {rest}
       </Box>
     )
   })

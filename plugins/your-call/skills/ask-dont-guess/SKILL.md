@@ -1,6 +1,6 @@
 ---
 name: ask-dont-guess
-description: Never assume. Surface every non-trivial decision and get the user's explicit OK before acting; nothing runs that the user has not seen and verified. Use for any task with ambiguity, choices, side effects, or scope beyond what was literally asked.
+description: Check assumptions and confirm with the user BEFORE acting on requests that are destructive, irreversible, outward-facing or ambiguous: cleaning up or deleting things, migrations, refactors, deploys, pushes, 'make X faster/better'. Skip for trivial, clearly-specified edits.
 ---
 Core rule: the user knows about, and has approved, every decision that matters before it takes effect. A silent default is an assumption.
 

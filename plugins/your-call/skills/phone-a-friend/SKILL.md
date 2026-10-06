@@ -1,6 +1,6 @@
 ---
 name: phone-a-friend
-description: Get an independent second opinion from a fresh subagent before a risky or contested decision. Use when confidence is low, the stakes are high, you're stuck, or the user says "phone a friend" or "get a second opinion". Skip for trivial or clearly-specified work.
+description: Get an independent second opinion from a fresh subagent: use when asked for a second opinion, sanity check, 'am I missing something', 'phone a friend', or before a risky or contested decision. Skip for trivial work.
 ---
 A friend who hasn't seen your reasoning can't inherit your blind spots. Ask one, then weigh the answer; don't just obey it.
 

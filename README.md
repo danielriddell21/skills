@@ -26,7 +26,8 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 
 ```
 scripts/validate.sh && scripts/test-shell.sh
-claude plugin validate plugins/<mod> && claude plugin test plugins/<mod>
+scripts/check-mods.sh                  # claude plugin validate + test for every plugin
+scripts/run-evals.sh                   # skill trigger evals (spends tokens)
 ```
 
-Early: unit-tested and validated, but nothing has run in a live session yet and `evals/triggers.json` is unrun. MIT, see `LICENSE`.
+Early: validated, unit-tested, and hook-level tested with the plugin test kit (panes, wizard, context bar), but not yet used in a live interactive session. Skill trigger evals (`scripts/run-evals.sh`, results in `evals/results.md`): 15 of 24 pass; skills fire when named but rarely on implicit requests. Static overhead is roughly 1k tokens per turn (cached). MIT, see `LICENSE`.

@@ -1,6 +1,6 @@
 ---
 name: ask-the-audience
-description: Poll several independent subagents on a contested choice and tally their votes. Use when 2-5 options are genuinely close, a wrong pick is costly, or the user says "ask the audience" or "poll it". Skip for clear-cut or cheap-to-reverse choices.
+description: Poll 3-5 independent subagents and tally votes: use when asked to poll, vote, survey agents or 'ask the audience', or when 2-5 options are genuinely close and a wrong pick is costly. Skip for clear-cut choices.
 ---
 One opinion can be wrong; a spread of independent ones shows how contested the choice is.
 

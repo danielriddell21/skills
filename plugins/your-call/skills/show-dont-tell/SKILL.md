@@ -1,6 +1,6 @@
 ---
 name: show-dont-tell
-description: Present complex comparisons, tradeoffs, architectures and flows as a chart or diagram instead of walls of text. Use when comparing 3+ options, explaining structure or flow, or showing data where a picture beats prose. Skip for simple answers.
+description: Use a chart or diagram instead of prose when asked to compare 2+ options, weigh tradeoffs, or explain a flow, architecture or how several parts connect. Skip for simple answers.
 ---
 Use a visual only when it clearly beats prose. Work down this list and use the first route that is available.
 

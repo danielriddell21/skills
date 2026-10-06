@@ -33,3 +33,7 @@ PASS where-did-my-tokens-go   should_not fired=[claude-api]  explain how prompt 
 PASS where-did-my-tokens-go   should_not fired=[]  fix the failing test
 15 pass, 9 fail
 ```
+
+## 2026-10-06, after matchmaker skill hints
+
+Still 15 of 24. Headless `claude -p` does not run the matchmaker's `prompt.submit` hook (no hint reaches the model; checked in the stream), so this harness cannot measure it. At hook level a test confirms the hint is attached for the classified label (`plugins/matchmaker/hooks/register.test.ts`). Whether it makes skills fire in an interactive session is untested.

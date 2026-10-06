@@ -27,3 +27,25 @@ test('minChars option', () => {
   expect(shouldClassify('x'.repeat(20), false, false, 10)).toBe(true)
   expect(shouldClassify('x'.repeat(20), false, false, 30)).toBe(false)
 })
+
+test('prompt.submit attaches the hint for the classified label', async ($, on) => {
+  let ctx: readonly string[] | undefined
+  on('model.classify', () => ({ value: 'destructive-or-ambiguous' }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string; context?: readonly string[] }) => {
+    ctx = e.context
+    return { text: e.text }
+  })
+  await $.prompt.submit({ text: 'clean up the old branches in this repository please' } as never)
+  expect((ctx ?? []).join('\n')).toContain('ask-dont-guess')
+})
+
+test('short prompts and slash commands get no hint', async ($, on) => {
+  let ctx: readonly string[] | undefined = ['unset']
+  on('model.classify', () => ({ value: 'search' }) as never)
+  on('prompt.submit', (_: unknown, e: { text: string; context?: readonly string[] }) => {
+    ctx = e.context
+    return { text: e.text }
+  })
+  await $.prompt.submit({ text: 'fix typo' } as never)
+  expect(ctx).toBeUndefined()
+})

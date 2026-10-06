@@ -48,7 +48,7 @@
     {
       "name": "whats-in-the-box",
       "source": "./plugins/whats-in-the-box",
-      "description": "Mod: /whats-in-the-box live context breakdown pane",
+      "description": "Mod: colored context bar above the prompt with per-category legend; /whats-in-the-box opens the detail pane",
       "tags": [
         "context",
         "mod"

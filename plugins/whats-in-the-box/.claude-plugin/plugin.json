@@ -1,7 +1,7 @@
 {
   "name": "whats-in-the-box",
   "version": "0.1.0",
-  "description": "Mod: /ctx opens a live pane with the context breakdown by category",
+  "description": "Mod: colored context bar above the prompt with per-category legend; /whats-in-the-box opens the detail pane",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Daniel Riddell"
@@ -12,5 +12,19 @@
     "context",
     "mod"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "band": {
+      "type": "boolean",
+      "title": "Show the context bar",
+      "description": "Draw the colored context bar above the prompt",
+      "default": true
+    },
+    "minPercent": {
+      "type": "number",
+      "title": "Show from %",
+      "description": "Hide the bar until context use reaches this percent (0 = always)",
+      "default": 0
+    }
+  }
 }

@@ -20,6 +20,25 @@ export const toSnapshot = (b: Breakdown): Snapshot => ({
   percent: b.percentage,
 })
 
+const PALETTE = ['cyan', 'magenta', 'yellow', 'green', 'blue', 'red', 'white']
+const BAR_WIDTH = 36
+const LEGEND_MAX = 4
+
+export const fmtTokens = (n: number): string => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n))
+
+/** Cells per category for a bar `width` wide over `max` tokens; never more than `width` in total. */
+export const barCells = (rows: { name: string; tokens: number }[], max: number, width: number): { name: string; cells: number }[] => {
+  let left = width
+  return rows
+    .filter(r => r.tokens > 0 && max > 0)
+    .map(r => {
+      const cells = Math.min(left, Math.max(1, Math.round((r.tokens / max) * width)))
+      left -= cells
+      return { name: r.name, cells }
+    })
+    .filter(c => c.cells > 0)
+}
+
 const refresh = async ($: Engine) => {
   const { context } = await $.session.usage({ breakdown: 'summary' })
   const b = context.breakdown
@@ -28,7 +47,7 @@ const refresh = async ($: Engine) => {
   await update($, snapshot, () => snap)
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
   on('session.start', async ($, e, next) => {
     await $.command.register({ name: 'whats-in-the-box', description: 'Show context breakdown in a pane' })
     return next(e)
@@ -43,6 +62,45 @@ export const register: Register = on => {
   on('session.measure', async ($, e, next) => {
     if (e.changed.includes('context')) await refresh($)
     return next(e)
+  })
+
+  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
+    const s = await read($, snapshot)
+    const min = typeof options.minPercent === 'number' ? options.minPercent : 0
+
+    if (options.band === false || e.props.hasSurvey || !s || s.percent < min) return next(e)
+
+    const { Box, Text, Button } = $.ui.resolve(e)
+    const cells = barCells(s.rows, s.max, BAR_WIDTH)
+    const used = cells.reduce((n, c) => n + c.cells, 0)
+    const color = (name: string) => PALETTE[Math.max(0, s.rows.findIndex(r => r.name === name)) % PALETTE.length]
+    const shown = s.rows.slice(0, LEGEND_MAX)
+    const hidden = s.rows.length - shown.length
+
+    return (
+      <Box flexDirection="column">
+        <Box>
+          <Text bold>ctx </Text>
+          {cells.map(c => (
+            <Text key={`b-${c.name}`} color={color(c.name)}>{'█'.repeat(c.cells)}</Text>
+          ))}
+          <Text dimColor>{'░'.repeat(Math.max(0, BAR_WIDTH - used))}</Text>
+          <Text> {Math.round(s.percent)}% </Text>
+          <Text dimColor>
+            {fmtTokens(s.total)}/{fmtTokens(s.max)}{' '}
+          </Text>
+          <Button key="details" label="Details" onPress={() => $.ui.open({ id: PANE, title: 'Context' })} />
+        </Box>
+        <Box>
+          {shown.map(r => (
+            <Text key={`l-${r.name}`} color={color(r.name)}>
+              ■ {r.name} {fmtTokens(r.tokens)}{'  '}
+            </Text>
+          ))}
+          {hidden > 0 && <Text dimColor>+{hidden} more</Text>}
+        </Box>
+      </Box>
+    )
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {

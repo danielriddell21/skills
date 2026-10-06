@@ -13,7 +13,7 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 |---|---|
 | `do-you-need-all-that` | `/squish` (focused `/compact` line); `where-did-my-tokens-go` audit skill; hooks block whole reads of big files and re-inject git state after compaction |
 | `are-we-there-yet` | Mod. `ctx 63%` in the status line, toasts at 50/70/85% |
-| `whats-in-the-box` | Mod. `/whats-in-the-box`: tokens per category |
+| `whats-in-the-box` | Mod. Colored context bar above the prompt with per-category legend (options: on/off, show-from %); `/whats-in-the-box` for the detail pane |
 | `who-wants-the-job` | Agents `scout` (haiku), `engineer` (sonnet), `spy` and `sniper` (opus); `/who-does-this`, `/whats-the-damage` (token report); `hey-you-do-it` routing skill |
 | `matchmaker` | Mod. Classifies each prompt and hints which agent to use |
 | `stop-you-violated-the-law` | Mod. "STOP! You violated the law!" toast when opus handles a light turn |

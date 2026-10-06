@@ -11,5 +11,19 @@
     "summary",
     "mod"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "defaultMode": {
+      "type": "string",
+      "title": "Default mode",
+      "description": "Mode used until you pick one with /tldr",
+      "default": "smart",
+      "options": [
+        "off",
+        "on",
+        "auto",
+        "smart"
+      ]
+    }
+  }
 }

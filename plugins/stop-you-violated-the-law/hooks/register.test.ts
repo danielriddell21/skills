@@ -15,7 +15,7 @@ const setup = (on: any) => {
   on('turn.complete', (_: unknown, e: { answer: string }) => ({ text: e.answer }))
   on('ui.toast', (_: unknown, e: { text: string }) => {
     toasts.push(e.text)
-    return null
+    return { value: undefined } as never
   })
   return toasts
 }

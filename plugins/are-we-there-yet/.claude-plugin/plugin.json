@@ -11,5 +11,25 @@
     "context",
     "mod"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "notice": {
+      "type": "number",
+      "title": "First nudge at %",
+      "description": "Context % for the first toast",
+      "default": 50
+    },
+    "warn": {
+      "type": "number",
+      "title": "Warning at %",
+      "description": "Context % for the wrap-up toast",
+      "default": 70
+    },
+    "urgent": {
+      "type": "number",
+      "title": "Urgent at %",
+      "description": "Context % for the compact-or-clear toast",
+      "default": 85
+    }
+  }
 }

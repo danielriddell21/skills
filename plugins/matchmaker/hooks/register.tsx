@@ -13,16 +13,24 @@ export const HINT: Record<string, string> = {
   trivial: 'Route: trivial. Do it inline; no subagent.',
 }
 
-export const shouldClassify = (text: string, hasOrigin: boolean, isOffNow: boolean): boolean => {
+export const shouldClassify = (text: string, hasOrigin: boolean, isOffNow: boolean, minChars = 40): boolean => {
   const t = text.trim()
-  return !hasOrigin && !isOffNow && !t.startsWith('/') && t.length >= 40
+  return !hasOrigin && !isOffNow && !t.startsWith('/') && t.length >= minChars
 }
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  const minChars = typeof options.minChars === 'number' ? options.minChars : 40
+
+  on('session.start', async ($, e, next) => {
+    const saved = await $.store.get('isOff')
+    await update($, isOff, () => saved === true || options.enabled === false)
+    return next(e)
+  })
+
   on('prompt.submit', async ($, e, next) => {
     const t = e.text.trim()
 
-    if (!shouldClassify(t, e.origin !== undefined, await read($, isOff))) return next(e)
+    if (!shouldClassify(t, e.origin !== undefined, await read($, isOff), minChars)) return next(e)
 
     const label = await $.model.classify(t, LABELS).catch(() => undefined)
 
@@ -45,7 +53,10 @@ export const register: Register = on => {
     return (
       <Box>
         <Text dimColor>{off ? 'matchmaker off ' : `route: ${r} `}</Text>
-        <Button key="toggle" label={off ? 'On' : 'Off'} onPress={() => update($, isOff, v => !v)} />
+        <Button key="toggle" label={off ? 'On' : 'Off'} onPress={async () => {
+            const v = await update($, isOff, x => !x)
+            await $.store.set('isOff', v)
+          }} />
       </Box>
     )
   })

@@ -13,5 +13,19 @@
     "routing",
     "mod"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "enabled": {
+      "type": "boolean",
+      "title": "Route prompts",
+      "description": "Classify each prompt and hint which agent fits (the band's Off button overrides this)",
+      "default": true
+    },
+    "minChars": {
+      "type": "number",
+      "title": "Minimum prompt length",
+      "description": "Prompts shorter than this are not classified",
+      "default": 40
+    }
+  }
 }

@@ -11,5 +11,25 @@
     "models",
     "mod"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "maxTools": {
+      "type": "number",
+      "title": "Max tool calls",
+      "description": "A turn with more tool calls than this is not 'light'",
+      "default": 2
+    },
+    "maxOutputTokens": {
+      "type": "number",
+      "title": "Max output tokens",
+      "description": "A reply longer than this is not 'light'",
+      "default": 400
+    },
+    "cooldownTurns": {
+      "type": "number",
+      "title": "Quiet turns",
+      "description": "Turns to stay quiet after a toast",
+      "default": 5
+    }
+  }
 }

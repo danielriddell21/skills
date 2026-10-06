@@ -15,3 +15,8 @@ test('classifies only real user prompts of enough length', () => {
 test('every label has a hint pointing at the routing skill or inline', () => {
   for (const k of ['search', 'implement', 'design', 'review', 'trivial']) expect(HINT[k]).toBeTruthy()
 })
+
+test('minChars option', () => {
+  expect(shouldClassify('x'.repeat(20), false, false, 10)).toBe(true)
+  expect(shouldClassify('x'.repeat(20), false, false, 30)).toBe(false)
+})

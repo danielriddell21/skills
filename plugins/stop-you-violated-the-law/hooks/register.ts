@@ -1,10 +1,12 @@
 import type { Register } from 'claude-code'
 
-const MAX_TOOLS = 2
-const MAX_OUTPUT = 400
-const COOLDOWN = 5
+const num = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 ? v : d)
 
-export const register: Register = on => {
+export const register: Register = (on, options) => {
+  const MAX_TOOLS = num(options.maxTools, 2)
+  const MAX_OUTPUT = num(options.maxOutputTokens, 400)
+  const COOLDOWN = num(options.cooldownTurns, 5)
+
   let tools = 0
   let quiet = 0
 

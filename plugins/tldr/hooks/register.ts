@@ -41,8 +41,8 @@ const summarize = async ($: Engine, text: string) => {
   return r?.isAnswered ? r.text.trim() : undefined
 }
 
-export const register: Register = on => {
-  let mode: Mode = 'smart'
+export const register: Register = (on, options) => {
+  let mode: Mode = parseMode(String(options.defaultMode ?? '')) ?? 'smart'
   let last = ''
   let tools = 0
 

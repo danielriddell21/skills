@@ -1,6 +1,6 @@
 {
   "name": "are-we-there-yet",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Live context % in the status line; toasts at 50/70/85%",
   "author": {
     "name": "Daniel Riddell"

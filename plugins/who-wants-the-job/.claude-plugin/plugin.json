@@ -1,6 +1,6 @@
 {
   "name": "who-wants-the-job",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Right model for the job: pinned agents, routing, cost report",
   "author": {
     "name": "Daniel Riddell"

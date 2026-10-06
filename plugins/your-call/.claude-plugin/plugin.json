@@ -1,6 +1,6 @@
 {
   "name": "your-call",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), in-thread charts from fenced viz blocks, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
   "types": "./types/index.d.ts",
   "author": {

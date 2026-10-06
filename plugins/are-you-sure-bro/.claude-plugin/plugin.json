@@ -1,6 +1,6 @@
 {
   "name": "are-you-sure-bro",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mod: confirms risky Bash commands and writes to sensitive files; offers to cap noisy output",
   "author": {
     "name": "Daniel Riddell"

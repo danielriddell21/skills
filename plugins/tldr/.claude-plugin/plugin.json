@@ -1,6 +1,6 @@
 {
   "name": "tldr",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mod: /tldr summarizes the last answer on demand; modes off|on|auto|smart control Verdict/Why/Next answers and auto summaries",
   "author": {
     "name": "Daniel Riddell"

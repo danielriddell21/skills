@@ -1,6 +1,6 @@
 {
   "name": "sticky-notes",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mod: shared checklist pane (/sticky); the model edits it via a tool",
   "types": "./types/index.d.ts",
   "author": {

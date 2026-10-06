@@ -1,6 +1,6 @@
 {
   "name": "whats-in-the-box",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mod: colored context bar above the prompt with per-category legend; /whats-in-the-box opens the detail pane",
   "types": "./types/index.d.ts",
   "author": {

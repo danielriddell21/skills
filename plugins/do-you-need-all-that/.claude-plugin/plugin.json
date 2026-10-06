@@ -1,6 +1,6 @@
 {
   "name": "do-you-need-all-that",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Keep context lean: guards, audits",
   "author": {
     "name": "Daniel Riddell"

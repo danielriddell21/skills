@@ -1,6 +1,6 @@
 {
   "name": "matchmaker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Mod: classifies each prompt (cheap model) and tells Claude which agent/model fits; band with off switch",
   "types": "./types/index.d.ts",
   "author": {

@@ -19,7 +19,7 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 | `stop-you-violated-the-law` | Mod. "STOP! You violated the law!" toast when opus handles a light turn |
 | `your-call` | Mod. Choice tool: dialog, select, rank, compare matrix, wizard, "none fit?" regenerate. Draws fenced `viz` blocks (bars, quadrant, tree, flow) as in-thread charts. Skills: `ask-dont-guess`, `show-dont-tell`, `phone-a-friend` (second opinion), `ask-the-audience` (subagent vote) |
 | `tldr` | Mod. `/tldr` = Verdict / Why / Next of the last answer; `/tldr off\|on\|auto\|smart` |
-| `are-you-sure-bro` | Mod. Confirms risky commands, offers to cap noisy output |
+| `are-you-sure-bro` | Mod. Confirms risky commands (rm -rf, force/main pushes, curl\|sh, sudo, terraform destroy, DROP…) and writes to .env/SSH/credentials files; offers to cap noisy output |
 | `sticky-notes` | Mod. `/sticky` checklist Claude edits via a tool |
 
 ## Development

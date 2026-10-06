@@ -1,7 +1,7 @@
 {
   "name": "are-you-sure-bro",
   "version": "0.1.0",
-  "description": "Mod: confirms risky Bash commands; offers to cap output of noisy ones",
+  "description": "Mod: confirms risky Bash commands and writes to sensitive files; offers to cap noisy output",
   "author": {
     "name": "Daniel Riddell"
   },
@@ -11,5 +11,25 @@
     "safety",
     "mod"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "capLines": {
+      "type": "number",
+      "title": "Output cap (lines)",
+      "description": "Lines to keep when you choose to cap a noisy command",
+      "default": 200
+    },
+    "guardWrites": {
+      "type": "boolean",
+      "title": "Guard sensitive writes",
+      "description": "Ask before Write/Edit touches .env, SSH keys, credentials, .git hooks, /etc",
+      "default": true
+    },
+    "extraRisky": {
+      "type": "string",
+      "title": "Extra risky pattern",
+      "description": "Optional regex; commands matching it ask for confirmation too",
+      "default": ""
+    }
+  }
 }

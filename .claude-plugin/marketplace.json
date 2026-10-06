@@ -86,7 +86,7 @@
     {
       "name": "are-you-sure-bro",
       "source": "./plugins/are-you-sure-bro",
-      "description": "Mod: confirms risky Bash commands; offers to cap output of noisy ones",
+      "description": "Mod: confirms risky Bash commands and writes to sensitive files; offers to cap noisy output",
       "tags": [
         "safety",
         "mod"

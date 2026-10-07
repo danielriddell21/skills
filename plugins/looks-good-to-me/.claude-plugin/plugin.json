@@ -1,0 +1,20 @@
+{
+  "name": "looks-good-to-me",
+  "version": "0.4.0",
+  "description": "Mod + skill: /lgtm is your auto-approval gate for one turn (variants: safe, decide, plan, push, yolo). Hooks into your-call and are-you-sure-bro; a chip shows it is on and every auto-approval is logged",
+  "types": "./types/index.d.ts",
+  "author": { "name": "Daniel Riddell" },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": ["approval", "gate", "mod"],
+  "license": "MIT",
+  "userConfig": {
+    "defaultVariant": {
+      "type": "string",
+      "title": "Variant for a bare /lgtm",
+      "description": "Which variant plain /lgtm arms",
+      "default": "safe",
+      "options": ["safe", "decide", "plan", "push"]
+    }
+  }
+}

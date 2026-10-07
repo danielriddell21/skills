@@ -1,7 +1,7 @@
 {
   "name": "are-you-sure-bro",
   "version": "0.2.0",
-  "description": "Mod: confirms risky Bash commands and writes to sensitive files; offers to cap noisy output",
+  "description": "Mod: confirms only dangerous Bash commands (data loss, irreversible) and writes to sensitive files; optional strictness and noisy-output cap",
   "author": {
     "name": "Daniel Riddell"
   },
@@ -30,6 +30,23 @@
       "title": "Extra risky pattern",
       "description": "Optional regex; commands matching it ask for confirmation too",
       "default": ""
+    },
+    "level": {
+      "type": "string",
+      "title": "Strictness",
+      "description": "dangerous: only commands that lose data or cannot be undone. careful: also pushes to main/master, sudo, find -delete, terraform apply, kubectl delete and similar",
+      "default": "dangerous",
+      "options": [
+        "dangerous",
+        "careful"
+      ]
+    },
+    "capNoisy": {
+      "type": "boolean",
+      "title": "Offer to cap noisy output",
+      "description": "Also ask before commands that tend to print a lot (cat, ls -R, test runs, logs) and offer to cap them. Off by default",
+      "default": false
     }
-  }
+  },
+  "types": "./types/index.d.ts"
 }

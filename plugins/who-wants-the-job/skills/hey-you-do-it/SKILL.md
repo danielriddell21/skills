@@ -2,7 +2,7 @@
 name: hey-you-do-it
 description: Routing table for which agent or model should do a task (scout, engineer, spy, sniper, or inline). Use when asked which agent/model to use, when a task mixes investigation and implementation, or before reading many files yourself.
 ---
-Single source for routing (`/who-does-this` and the `matchmaker` mod follow this table).
+Single source for routing (the `matchmaker` mod applies this table to each prompt).
 
 | Task | Agent (model) |
 |---|---|

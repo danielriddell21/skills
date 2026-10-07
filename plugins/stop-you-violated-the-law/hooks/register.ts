@@ -1,5 +1,8 @@
 import type { Register } from 'claude-code'
 
+// Three lines of at most 40 columns: that is all a toast shows.
+export const TOAST = 'STOP! You violated the law!\nOpus for a light turn? Sonnet or haiku\nwould do. Switch with /model'
+
 const num = (v: unknown, d: number) => (typeof v === 'number' && v >= 0 ? v : d)
 
 export const register: Register = (on, options) => {
@@ -28,7 +31,7 @@ export const register: Register = (on, options) => {
 
     if (isLight && /opus/i.test(u.model) && quiet === 0) {
       quiet = COOLDOWN
-      $.ui.toast('STOP! You violated the law! Opus on a light turn. Pay the fine: sonnet/haiku would do (/model or /who-does-this)')
+      $.ui.toast(TOAST)
     }
 
     return next(e)

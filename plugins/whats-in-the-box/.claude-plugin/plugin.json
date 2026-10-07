@@ -1,7 +1,7 @@
 {
   "name": "whats-in-the-box",
   "version": "0.2.0",
-  "description": "Mod: colored context bar above the prompt with per-category legend; /whats-in-the-box opens the detail pane",
+  "description": "Mod: context bar above the prompt with per-category legend, ctx % in the status line, toasts as it fills, a Compact chip at the urgent level, and a detail pane (/whats-in-the-box)",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Daniel Riddell"
@@ -10,6 +10,7 @@
   "repository": "https://github.com/danielriddell21/skills",
   "keywords": [
     "context",
+    "compaction",
     "mod"
   ],
   "license": "MIT",
@@ -25,6 +26,30 @@
       "title": "Show from %",
       "description": "Hide the bar until context use reaches this percent (0 = always)",
       "default": 0
+    },
+    "notice": {
+      "type": "number",
+      "title": "First nudge at %",
+      "description": "Context % for the first toast",
+      "default": 50
+    },
+    "warn": {
+      "type": "number",
+      "title": "Warning at %",
+      "description": "Context % for the wrap-up toast",
+      "default": 70
+    },
+    "urgent": {
+      "type": "number",
+      "title": "Urgent at %",
+      "description": "Context % for the compact-or-clear toast and the Compact chip",
+      "default": 85
+    },
+    "compactButton": {
+      "type": "boolean",
+      "title": "Compact chip",
+      "description": "At the urgent level, show a Compact chip above the prompt",
+      "default": true
     }
   }
 }

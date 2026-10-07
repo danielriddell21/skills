@@ -6,3 +6,5 @@ Mod. After a turn that used tools, a one-line band above the prompt: `✓ 3 file
 - **Details** lists the changed files; **Hide** dismisses it. It clears on your next prompt.
 - Options: `minTools` (1), `showCost` (true; shown only when the session reports a cost).
 - Composes with the other bands (context bar, route chip, Compact button) instead of replacing them.
+
+It is a chip: it joins the one shared chip row with the route and Compact chips instead of taking its own line; the file list opens below the bands.

@@ -3,6 +3,8 @@ import type { Register } from 'claude-code'
 
 import type { Summary, TestState } from '../types'
 
+import { RANK, chipKey, injectChips, isEmpty } from './chips'
+
 const summary = atom({ plugin: 'how-did-that-go', key: 'summary' } as const, null)
 
 const TEST = /\b(go test|pytest|jest|vitest|cargo test|npm (run )?test|pnpm test|yarn test|make test)\b/
@@ -78,24 +80,36 @@ export const register: Register = (on, options) => {
     const rest = await next(e)
     const color = s.reason !== 'answer' || s.tests === 'fail' ? 'red' : 'green'
     const names = s.files.slice(0, 8).map(f => f.split('/').slice(-2).join('/'))
+    const chip = (
+      <Box key={chipKey(RANK.result, 'result')}>
+        <Text key="hdtg" color={color}>{formatSummary(s, options.showCost !== false)} </Text>
+        {s.files.length > 0 && (
+          <Button key="details" label={s.isOpen ? 'Less' : 'Details'} onPress={() => update($, summary, x => (x ? { ...x, isOpen: !x.isOpen } : x))} />
+        )}
+        <Button key="hide" label="Hide" onPress={() => update($, summary, () => null)} />
+      </Box>
+    )
+    const joined = injectChips(rest, chip)
+    const base = joined ?? (isEmpty(rest) ? (
+      <Box key="chips" flexWrap="wrap">{chip}</Box>
+    ) : (
+      <Box flexDirection="column">
+        <Box key="chips" flexWrap="wrap">{chip}</Box>
+        {rest}
+      </Box>
+    ))
+
+    if (!s.isOpen) return base as never
 
     return (
       <Box flexDirection="column">
-        <Box>
-          <Text color={color}>{formatSummary(s, options.showCost !== false)} </Text>
-          {s.files.length > 0 && (
-            <Button key="details" label={s.isOpen ? 'Less' : 'Details'} onPress={() => update($, summary, x => (x ? { ...x, isOpen: !x.isOpen } : x))} />
-          )}
-          <Button key="hide" label="Hide" onPress={() => update($, summary, () => null)} />
-        </Box>
-        {s.isOpen &&
-          names.map(n => (
-            <Text key={`f-${n}`} dimColor>
-              {'  '}{n}
-            </Text>
-          ))}
-        {s.isOpen && s.files.length > names.length && <Text dimColor>{'  '}+{s.files.length - names.length} more</Text>}
-        {rest}
+        {base}
+        {names.map(n => (
+          <Text key={`f-${n}`} dimColor>
+            {'  '}{n}
+          </Text>
+        ))}
+        {s.files.length > names.length && <Text dimColor>{'  '}+{s.files.length - names.length} more</Text>}
       </Box>
     )
   })

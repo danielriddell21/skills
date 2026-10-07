@@ -5,6 +5,7 @@ const props = { hasSurvey: false, isWorking: false, maxRows: 10 } as never
 
 const base = (on: any, submitted: string[] = []) => {
   on('session.measure', (_: unknown, e: { changed: string[] }) => ({ changed: e.changed }))
+  on('session.usage', () => ({ value: { startedAt: 0, rateLimits: [], context: { window: 1000 } } }) as never)
   on('ui.render', () => ({ type: 'Box', props: {}, children: [] }) as never)
   on('ui.toast', () => ({ value: undefined }) as never)
   on('ui.status', () => ({ value: undefined }) as never)
@@ -14,18 +15,18 @@ const base = (on: any, submitted: string[] = []) => {
   })
 }
 
-test('no Compact button below the urgent level', async ($, on) => {
+test('no Compact chip below the urgent level', async ($, on) => {
   base(on)
   await $.session.measure({ context: ctx(60), rateLimits: [], changed: ['context'] } as never)
-  const m = await $.ui.mount({ plugin: 'are-we-there-yet', surface: 'terminal', component: 'AbovePrompt', props })
+  const m = await $.ui.mount({ plugin: 'whats-in-the-box', surface: 'terminal', component: 'AbovePrompt', props })
   expect(await m.find({ key: 'compact' } as never)).toBeUndefined()
 })
 
-test('Compact button at 90% submits a focused /compact', async ($, on) => {
+test('Compact chip at 90% submits a focused /compact', async ($, on) => {
   const submitted: string[] = []
   base(on, submitted)
   await $.session.measure({ context: ctx(90), rateLimits: [], changed: ['context'] } as never)
-  const m = await $.ui.mount({ plugin: 'are-we-there-yet', surface: 'terminal', component: 'AbovePrompt', props })
+  const m = await $.ui.mount({ plugin: 'whats-in-the-box', surface: 'terminal', component: 'AbovePrompt', props })
   await m.press({ key: 'compact' } as never)
   expect(submitted[0].startsWith('/compact keep the goal')).toBe(true)
 })
@@ -33,6 +34,6 @@ test('Compact button at 90% submits a focused /compact', async ($, on) => {
 test('compactButton: false hides it', { options: { compactButton: false } }, async ($, on) => {
   base(on)
   await $.session.measure({ context: ctx(90), rateLimits: [], changed: ['context'] } as never)
-  const m = await $.ui.mount({ plugin: 'are-we-there-yet', surface: 'terminal', component: 'AbovePrompt', props })
+  const m = await $.ui.mount({ plugin: 'whats-in-the-box', surface: 'terminal', component: 'AbovePrompt', props })
   expect(await m.find({ key: 'compact' } as never)).toBeUndefined()
 })

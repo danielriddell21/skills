@@ -1,6 +1,8 @@
 import { atom, read, update } from 'claude-code'
 import type { Register } from 'claude-code'
 
+import { RANK, chipKey, injectChips, isEmpty } from './chips'
+
 const route = atom({ plugin: 'matchmaker', key: 'route' } as const, null)
 const isOff = atom({ plugin: 'matchmaker', key: 'isOff' } as const, false)
 
@@ -28,6 +30,20 @@ export const HINT: Record<string, string> = {
     'Route: the user wants a second opinion. If the phone-a-friend or ask-the-audience skill is available, follow it.',
 }
 
+/** Who the hint sends the work to, for the chip. */
+export const AGENT: Record<string, string> = {
+  search: 'scout',
+  implement: 'engineer',
+  design: 'spy',
+  review: 'sniper',
+  trivial: 'inline',
+  'destructive-or-ambiguous': 'ask first',
+  'compare-or-explain-flow': 'chart it',
+  'second-opinion': 'second opinion',
+}
+
+export const chipText = (label: string): string => `✦ ${label} → ${AGENT[label] ?? label}`
+
 export const shouldClassify = (text: string, hasOrigin: boolean, isOffNow: boolean, minChars = 40): boolean => {
   const t = text.trim()
   return !hasOrigin && !isOffNow && !t.startsWith('/') && t.length >= minChars
@@ -52,7 +68,7 @@ export const register: Register = (on, options) => {
     if (!label) return next(e)
 
     await update($, route, () => label)
-    $.ui.status(`route: ${label}`)
+    $.ui.status(`✦ ${label}`)
 
     return next({ ...e, context: [...(e.context ?? []), HINT[label] ?? ''] })
   })
@@ -65,20 +81,29 @@ export const register: Register = (on, options) => {
 
     const { Box, Text, Button } = $.ui.resolve(e)
     const rest = await next(e)
+    const chip = (
+      <Box key={chipKey(RANK.route, 'route')}>
+        <Text key="mm" color={off ? undefined : 'magenta'} dimColor={off}>
+          {off ? '✦ matchmaker off ' : `${chipText(r ?? '')} `}
+        </Text>
+        <Button
+          key="toggle"
+          label={off ? 'On' : 'Off'}
+          onPress={async () => {
+            const v = await update($, isOff, x => !x)
+            await $.store.set('isOff', v)
+          }}
+        />
+      </Box>
+    )
+    const joined = injectChips(rest, chip)
+
+    if (joined) return joined as never
+    if (isEmpty(rest)) return <Box key="chips" flexWrap="wrap">{chip}</Box>
 
     return (
       <Box flexDirection="column">
-        <Box>
-          <Text dimColor>{off ? 'matchmaker off ' : `route: ${r} `}</Text>
-          <Button
-            key="toggle"
-            label={off ? 'On' : 'Off'}
-            onPress={async () => {
-              const v = await update($, isOff, x => !x)
-              await $.store.set('isOff', v)
-            }}
-          />
-        </Box>
+        <Box key="chips" flexWrap="wrap">{chip}</Box>
         {rest}
       </Box>
     )

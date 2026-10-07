@@ -54,16 +54,22 @@ export const register: Register = on => {
   })
 
   on('ui.render', { component: 'Pane', requestId: PANE }, async ($, e) => {
-    const { Box, Text, Button } = $.ui.resolve(e)
+    const { Box, Text, Button, Input } = $.ui.resolve(e)
     const list = await read($, tasks)
+    const done = list.filter(t => t.isDone).length
 
     return (
       <Box flexDirection="column">
-        {list.length === 0 && <Text dimColor>No tasks.</Text>}
+        <Text bold color="blue">
+          ◌ Sticky notes{list.length > 0 ? `  ${done}/${list.length} done` : ''}
+        </Text>
+        <Text dimColor>{'─'.repeat(40)}</Text>
+        {list.length === 0 && <Text dimColor>Nothing yet. Add a note below, or ask Claude to keep a checklist.</Text>}
         {list.map(t => (
           <Box key={`t${t.id}`}>
-            <Text dimColor={t.isDone}>
-              {t.isDone ? '[x]' : '[ ]'} {t.text}{' '}
+            <Text color={t.isDone ? 'green' : undefined} dimColor={t.isDone} strikethrough={t.isDone}>
+              {t.isDone ? '☑' : '☐'} {t.text}
+              {'  '}
             </Text>
             {!t.isDone && (
               <Button
@@ -74,6 +80,15 @@ export const register: Register = on => {
             )}
           </Box>
         ))}
+        <Text> </Text>
+        <Input
+          key="add"
+          label="add a note:"
+          placeholder="then Enter"
+          submitLabel="add"
+          onSubmit={text => update($, tasks, l => applyTask(l, { action: 'add', text }))}
+        />
+        {done > 0 && <Button key="clear" label="Clear done" onPress={() => update($, tasks, l => l.filter(x => !x.isDone))} />}
       </Box>
     )
   })

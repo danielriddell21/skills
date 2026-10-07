@@ -52,3 +52,15 @@ test('band respects band:false', { options: { band: false } }, async ($, on) => 
   const m = await $.ui.mount({ plugin: 'whats-in-the-box', surface: 'terminal', component: 'AbovePrompt', props })
   expect(await m.find({ key: 'details' })).toBeUndefined()
 })
+
+test('pane: header, one colored row per category with its share, and the free space', async ($, on) => {
+  on('session.usage', () => ({ value: usage(58) }))
+  on('session.measure', (_: unknown, e: { changed: string[] }) => ({ changed: e.changed }))
+  on('ui.render', () => ({ type: 'Box', props: {}, children: [] }) as never)
+  await $.session.measure({ context: (usage(58) as { context: never }).context, rateLimits: [], changed: ['context'] } as never)
+  const m = await $.ui.mount({ plugin: 'whats-in-the-box', surface: 'terminal', component: 'Pane', requestId: 'whats-in-the-box', props: {} as never })
+  expect(await m.find({ text: /■ Context  58%/ } as never)).toBeTruthy()
+  expect(await m.find({ text: /Messages/ } as never)).toBeTruthy()
+  expect(await m.find({ text: /MCP tools/ } as never)).toBeTruthy()
+  expect(await m.find({ text: /free/ } as never)).toBeTruthy()
+})

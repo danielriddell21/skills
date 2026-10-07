@@ -1,7 +1,7 @@
 {
   "name": "your-call",
   "version": "0.2.0",
-  "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), in-thread charts from fenced viz blocks, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
+  "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), approve-plan tool, in-thread charts, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
   "types": "./types/index.d.ts",
   "author": {
     "name": "Daniel Riddell"
@@ -14,5 +14,43 @@
     "charts",
     "skills"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "userConfig": {
+    "autoConfirm": {
+      "type": "boolean",
+      "title": "Confirm on pick",
+      "description": "In a single-step pane, picking an option confirms it (no Next press, no tweak note)",
+      "default": true
+    },
+    "rememberPicks": {
+      "type": "boolean",
+      "title": "Remember my picks",
+      "description": "Mark the option you chose last time for the same question",
+      "default": true
+    },
+    "idleMinutes": {
+      "type": "number",
+      "title": "Remind after (minutes)",
+      "description": "Toast if a decision is still waiting on you; 0 turns it off",
+      "default": 5
+    },
+    "giveUpMinutes": {
+      "type": "number",
+      "title": "Give up after (minutes)",
+      "description": "Tell Claude there was no answer after this long; 0 waits forever",
+      "default": 30
+    },
+    "confidence": {
+      "type": "boolean",
+      "title": "Ask how sure you are",
+      "description": "Show a low/medium/high row; the answer is returned with your pick",
+      "default": true
+    },
+    "timeoutPick": {
+      "type": "boolean",
+      "title": "Use the recommended option on timeout",
+      "description": "If you never answer, pick the recommended option instead of reporting no answer (only when every step has one)",
+      "default": false
+    }
+  }
 }

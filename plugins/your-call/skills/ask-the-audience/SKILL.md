@@ -17,7 +17,7 @@ One opinion can be wrong; a spread of independent ones shows how contested the c
 
 5. **Read the result honestly:**
    - 80%+ agree: report the winner and the main dissent.
-   - Split or many low confidences: say it is contested and put the top two to the user via `your-call` (`mcp__your-call__ask`), tally attached.
+   - Split or many low confidences: say it is contested and put the top two to the user via `your-call` (`mcp__your-call__ask`), passing the tally as `audience: {votes: {optionId: count}}` on that step so the pane shows the vote while they choose.
    - Never present a vote as proof; it is evidence, and the user decides.
 6. **Cap at 5 voters, one round.** Don't re-poll until you get the answer you wanted.
 

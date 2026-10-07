@@ -48,4 +48,4 @@ A rendered visual is read-only: clicks never reach the model. After showing it, 
 - Colour never carries meaning alone (add text or shape); keep contrast accessible.
 - Say when numbers are estimates ("scores are my estimates").
 
-Pairs with: `your-call` (collect the choice), `ask-dont-guess` (flag guessed numbers), `tldr` (short summary).
+Pairs with: `your-call` (collect the choice), `ask-dont-guess` (flag guessed numbers), `too-long-didnt-read` (short summary).

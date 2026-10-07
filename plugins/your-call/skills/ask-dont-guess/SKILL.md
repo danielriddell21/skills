@@ -14,8 +14,8 @@ Core rule: the user knows about, and has approved, every decision that matters b
 
 ## How
 1. **List assumptions** before acting: `Assuming: X, Y, Z`. Mark each *confirmed* (user said it) or *guessed*. Guessed ones need an answer.
-2. **Ask with structure.** Use the `your-call` tool (`mcp__your-call__ask`: options, pros/cons, compare, wizard) for real choices; yes/no and 2-4 plain options can use the built-in question dialog. Put your recommendation first and say why. Batch related questions; don't drip them.
-3. **Show what will run** for non-trivial actions: the exact command, files touched, scope, and effect. Wait for approval.
+2. **Ask with structure.** Use the `your-call` tool (`mcp__your-call__ask`: options, pros/cons, compare, wizard) for real choices; yes/no and 2-4 plain options can use the built-in question dialog. Mark your recommendation with `recommended: true` and a one-line `why` on the step (it starts selected), and say why. Batch related questions; don't drip them.
+3. **Show what will run** for non-trivial actions: call `mcp__your-call__approve` with the commands, file changes and pushes (label, exact command, `risk`, `action`), then do only what comes back in `approved`. If the user has set `/lgtm`, items it covers come back already approved; that is their choice, still say what you did.
 4. **Verify after.** Report what actually ran and its real result (output, exit code, tests). Never claim success you did not observe. If something was skipped or failed, say so plainly.
 5. **Log decisions** only when some were made or left open: a short list of decided (and by whom), still assumed, not done. Skip it for plain answers.
 

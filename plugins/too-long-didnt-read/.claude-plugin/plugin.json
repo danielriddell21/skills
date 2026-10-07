@@ -1,7 +1,7 @@
 {
-  "name": "tldr",
+  "name": "too-long-didnt-read",
   "version": "0.2.0",
-  "description": "Mod: /tldr summarizes the last answer on demand; modes off|on|auto|smart control Verdict/Why/Next answers and auto summaries",
+  "description": "Mod: /tldr summarizes the last answer; big answers get a small chart (bars, flow or tree), drawn above the prompt by your-call. Modes off, on, auto, smart",
   "author": {
     "name": "Daniel Riddell"
   },
@@ -9,6 +9,7 @@
   "repository": "https://github.com/danielriddell21/skills",
   "keywords": [
     "summary",
+    "tldr",
     "mod"
   ],
   "license": "MIT",
@@ -24,6 +25,16 @@
         "auto",
         "smart"
       ]
+    },
+    "widget": {
+      "type": "boolean",
+      "title": "Chart above the prompt",
+      "description": "Show auto summaries as a small chart above the prompt (drawn by your-call) instead of a toast",
+      "default": true
     }
-  }
+  },
+  "types": "./types/index.d.ts",
+  "dependencies": [
+    "your-call"
+  ]
 }

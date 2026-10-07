@@ -9,19 +9,41 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 
 *Mods* hot-reload; Claude Code asks once per session to enable them.
 
-| Plugin | What it does |
-|---|---|
-| `do-you-need-all-that` | `/squish` (focused `/compact` line); `where-did-my-tokens-go` audit skill; hooks block whole reads of big files and re-inject git state after compaction |
-| `are-we-there-yet` | Mod. `ctx 63%` in the status line, toasts at 50/70/85%, and a **Compact** button above the prompt at the urgent level |
-| `whats-in-the-box` | Mod. Colored context bar above the prompt with per-category legend (options: on/off, show-from %); `/whats-in-the-box` for the detail pane |
-| `who-wants-the-job` | Agents `scout` (haiku), `engineer` (sonnet), `spy` and `sniper` (opus); `/who-does-this`, `/whats-the-damage` (token report); `hey-you-do-it` routing skill |
-| `matchmaker` | Mod. Classifies each prompt, hints which agent to use, and points Claude at the right skill (`ask-dont-guess`, `show-dont-tell`, `phone-a-friend`) |
-| `how-did-that-go` | Mod. One-line band after each working turn: `✓ 3 files · tests pass · 41s · $0.12`, expandable file list |
-| `stop-you-violated-the-law` | Mod. "STOP! You violated the law!" toast when opus handles a light turn |
-| `your-call` | Mod. Choice tool: dialog, select, rank, compare matrix, wizard, "none fit?" regenerate. Draws fenced `viz` blocks (bars, quadrant, tree, flow) as in-thread charts. Skills: `ask-dont-guess`, `show-dont-tell`, `phone-a-friend` (second opinion), `ask-the-audience` (subagent vote) |
-| `tldr` | Mod. `/tldr` = Verdict / Why / Next of the last answer; `/tldr off\|on\|auto\|smart` |
-| `are-you-sure-bro` | Mod. Confirms risky commands (rm -rf, force/main pushes, curl\|sh, sudo, terraform destroy, DROP…) and writes to .env/SSH/credentials files; offers to cap noisy output |
-| `sticky-notes` | Mod. `/sticky` checklist Claude edits via a tool |
+| Plugin / part | Type | What it does |
+|---|---|---|
+| **do-you-need-all-that** | | Keep the context window small |
+| /squish | command | Prints a focused `/compact` line to run |
+| where-did-my-tokens-go | skill | Audits what is eating context |
+| big-read guard | hook | Blocks whole reads of big text files |
+| compaction reminder | hook | Hands git state back after compaction |
+| **whats-in-the-box** | mod | Context bar, status line, toasts, Compact chip |
+| /whats-in-the-box | command | Opens the per-category context pane |
+| **who-wants-the-job** | | Cheapest worker that can do the job |
+| scout, engineer, spy, sniper | agent | Search, build, plan, review (haiku, sonnet, opus, opus) |
+| hey-you-do-it | skill | The routing table: who does what |
+| /whats-the-damage | command | Token usage by model and tool |
+| **matchmaker** | mod | Tags each prompt, hints the agent or skill |
+| **stop-you-violated-the-law** | mod | Toast when opus does a light job |
+| **your-call** | | Decisions Claude asks you to make |
+| ask | tool | Choice UI: select, rank, compare, wizard |
+| approve | tool | Tick which planned actions may go ahead |
+| charts | mod | Draws `viz` blocks as in-thread charts |
+| /decisions | command | Lists this session's decisions |
+| ask-dont-guess | skill | List assumptions, confirm before acting |
+| show-dont-tell | skill | Chart or diagram for complex answers |
+| phone-a-friend | skill | Second opinion from a fresh subagent |
+| ask-the-audience | skill | Poll 3-5 subagents and tally |
+| **looks-good-to-me** | | Your auto-approval gate |
+| /lgtm | command | Pre-approve for one turn: safe, decide, plan, push, yolo |
+| lgtm | skill | Your "lgtm" approves what was just shown |
+| **are-you-sure-bro** | mod | Asks before dangerous commands and writes |
+| **too-long-didnt-read** | mod | `/tldr` summary; big answers get a small chart (bars, flow or tree) above the prompt, drawn by `your-call` (a dependency); modes off, on, auto, smart |
+| **how-did-that-go** | mod | Chip after each turn: files, tests, time, cost |
+| **sticky-notes** | mod | `/sticky` checklist you and Claude share |
+
+Each plugin has its own README with the details.
+
+The small status chips (route `✦`, context `■`, turn result `✓`/`✗`) share one row above the prompt; decisions use `◆`, notes `◌`.
 
 ## Development
 

@@ -28,15 +28,6 @@
       ]
     },
     {
-      "name": "are-we-there-yet",
-      "source": "./plugins/are-we-there-yet",
-      "description": "Mod: ctx % in the status line, toasts as context fills, and a Compact button above the prompt at the urgent level",
-      "tags": [
-        "context",
-        "mod"
-      ]
-    },
-    {
       "name": "stop-you-violated-the-law",
       "source": "./plugins/stop-you-violated-the-law",
       "description": "Mod: \"STOP! You violated the law!\" toast when opus is used for a light turn",
@@ -48,7 +39,7 @@
     {
       "name": "whats-in-the-box",
       "source": "./plugins/whats-in-the-box",
-      "description": "Mod: colored context bar above the prompt with per-category legend; /whats-in-the-box opens the detail pane",
+      "description": "Mod: context bar above the prompt with legend, ctx % in the status line, toasts as it fills, a Compact chip at the urgent level, detail pane",
       "tags": [
         "context",
         "mod"
@@ -57,7 +48,7 @@
     {
       "name": "your-call",
       "source": "./plugins/your-call",
-      "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), in-thread charts from fenced viz blocks, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
+      "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), approve-plan tool, in-thread charts, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
       "tags": [
         "decisions",
         "ui",
@@ -65,12 +56,15 @@
       ]
     },
     {
-      "name": "tldr",
-      "source": "./plugins/tldr",
-      "description": "Mod: /tldr summarizes the last answer on demand; modes off|on|auto|smart control Verdict/Why/Next answers and auto summaries",
+      "name": "too-long-didnt-read",
+      "source": "./plugins/too-long-didnt-read",
+      "description": "Mod: /tldr summarizes the last answer; big answers get a small chart (bars, flow or tree) drawn above the prompt by your-call, which it depends on",
       "tags": [
         "summary",
         "mod"
+      ],
+      "dependencies": [
+        "your-call"
       ]
     },
     {
@@ -86,7 +80,7 @@
     {
       "name": "are-you-sure-bro",
       "source": "./plugins/are-you-sure-bro",
-      "description": "Mod: confirms risky Bash commands and writes to sensitive files; offers to cap noisy output",
+      "description": "Mod: confirms only dangerous Bash commands (data loss, irreversible) and writes to sensitive files; optional strictness and noisy-output cap",
       "tags": [
         "safety",
         "mod"
@@ -108,6 +102,16 @@
       "tags": [
         "summary",
         "cost",
+        "mod"
+      ]
+    },
+    {
+      "name": "looks-good-to-me",
+      "source": "./plugins/looks-good-to-me",
+      "description": "/lgtm: your auto-approval gate for one turn (safe, decide, plan, push, yolo); chip, log, hooks into your-call and are-you-sure-bro",
+      "tags": [
+        "approval",
+        "gate",
         "mod"
       ]
     }

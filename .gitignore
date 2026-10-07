@@ -1,0 +1,3 @@
+# Written by the plugin engine when a mod loads; they extend files that are not in the repo.
+plugins/*/tsconfig.json
+plugins/*/.claude-plugin/types/

@@ -1,7 +1,7 @@
 {
   "name": "who-wants-the-job",
-  "version": "0.2.0",
-  "description": "Right model for the job: pinned agents, routing, cost report",
+  "version": "0.3.0",
+  "description": "Right model for the job: pinned agents, routing, cost report, and a live /crew pane with an animated crew, progress, context and cost",
   "author": {
     "name": "Daniel Riddell"
   },
@@ -12,5 +12,14 @@
     "agents",
     "cost"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "types": "./types/index.d.ts",
+  "userConfig": {
+    "autoOpen": {
+      "type": "boolean",
+      "title": "Open the crew pane when an agent starts",
+      "description": "Open /crew automatically on the first subagent",
+      "default": false
+    }
+  }
 }

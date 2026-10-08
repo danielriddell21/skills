@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.2
+
+- `who-wants-the-job` is now also a mod: `/crew` pane of every subagent (model, step progress, context %, estimated cost, time) with an animated pixel crab per run, in the Claude clay colour with a TF2 costume each (SVG; glyph row in the terminal), and a `♟ crew` chip with a Crew button in the shared chip row. Agents report steps through the new `step` tool. Idea from `savvy-progress`; code is new.
+
 ## 0.4.1
 
 - `how-did-that-go` is now `tell-me-the-damage`.

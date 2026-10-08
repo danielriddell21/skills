@@ -38,6 +38,7 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 | scout, engineer, spy, sniper | agent | Search, build, plan, review (haiku, sonnet, opus, opus) |
 | hey-you-do-it | skill | The routing table: who does what |
 | /whats-the-damage | command | Token usage by model and tool |
+| /crew | mod | Live subagent pane: animated characters, progress, context, cost; a chip opens it |
 
 ### `matchmaker`
 

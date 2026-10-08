@@ -20,7 +20,7 @@
     {
       "name": "who-wants-the-job",
       "source": "./plugins/who-wants-the-job",
-      "description": "Model-pinned agents, task routing, cost report",
+      "description": "Model-pinned agents, task routing, cost report, and a live /crew pane of subagents with animated characters",
       "tags": [
         "models",
         "agents",

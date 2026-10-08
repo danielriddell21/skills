@@ -87,17 +87,8 @@
       ]
     },
     {
-      "name": "sticky-notes",
-      "source": "./plugins/sticky-notes",
-      "description": "Mod: shared checklist pane (/sticky); the model edits it via a tool",
-      "tags": [
-        "tasks",
-        "mod"
-      ]
-    },
-    {
-      "name": "how-did-that-go",
-      "source": "./plugins/how-did-that-go",
+      "name": "tell-me-the-damage",
+      "source": "./plugins/tell-me-the-damage",
       "description": "Mod: one-line band after each working turn: files changed, tests, time, cost, with expandable details",
       "tags": [
         "summary",

@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.4.0 (unreleased)
+## 0.4.0
 
 - `too-long-didnt-read` depends on `your-call`: it publishes the summary chart and `your-call` draws it (text, SVG on desktop surfaces) with the same chart code as `viz` blocks. Without `your-call` it says so once and falls back to a toast.
 - `tldr` is now `too-long-didnt-read` (the command is still `/tldr`). Auto summaries are a small chart above the prompt (bars, flow or tree, chosen by content) instead of a toast; the toast remains with `widget: false` or when no chart can be made.
@@ -11,6 +11,9 @@
 
 - Merged `are-we-there-yet` into `whats-in-the-box`: the status line, toasts and Compact chip now live next to the bar, so context % is shown once. Options moved with it.
 - Removed `/who-does-this`; the `hey-you-do-it` skill is the routing table and `matchmaker` applies it to every prompt.
+- `how-did-that-go` is now `tell-me-the-damage`.
+- Removed `sticky-notes`.
+- `sonar-project.properties`: copied `chips.ts` and test files are excluded from SonarCloud duplication checks (plugins cannot share code).
 
 - Chip row: chips sort by rank (context, route, result) so the order is stable whichever plugin draws first, and the row wraps on a narrow terminal instead of cutting off buttons.
 - `your-call`: shorthand for simple asks (`{question, options, recommended, why}` or `{question, yesno: true}`).

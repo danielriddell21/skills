@@ -11,6 +11,6 @@ export type Summary = {
 
 declare module 'claude-code' {
   interface PluginState {
-    'how-did-that-go': { summary: Summary | null }
+    'tell-me-the-damage': { summary: Summary | null }
   }
 }

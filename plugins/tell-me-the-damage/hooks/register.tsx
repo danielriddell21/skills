@@ -5,7 +5,7 @@ import type { Summary, TestState } from '../types'
 
 import { RANK, chipKey, injectChips, isEmpty } from './chips'
 
-const summary = atom({ plugin: 'how-did-that-go', key: 'summary' } as const, null)
+const summary = atom({ plugin: 'tell-me-the-damage', key: 'summary' } as const, null)
 
 const TEST = /\b(go test|pytest|jest|vitest|cargo test|npm (run )?test|pnpm test|yarn test|make test)\b/
 

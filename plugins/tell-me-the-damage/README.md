@@ -1,4 +1,4 @@
-# how-did-that-go
+# tell-me-the-damage
 
 Mod. After a turn that used tools, a one-line band above the prompt: `✓ 3 files · tests pass · 41s · $0.12`.
 

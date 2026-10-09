@@ -8,7 +8,7 @@ import { defaultTicks, gatePermitsItem, normalizePlan } from './plan'
 import type { PlanItem } from './plan'
 import { CONFIDENCE, OTHER, initialPicks, isComplete, lastKey, nextVisible, prevVisible, recommendedFor, redoOf, resetDependents, resumeFrom, toggleVeto, undoOf, visibleIdx, weightKey, weightOf, weightedTotals, withUndo } from './flow'
 import { normalizeSpec } from './spec'
-import { splitViz, svgFor, textLines } from './viz'
+import { answerKey, splitViz, svgFor, textLines } from './viz'
 
 const PANE = 'your-call'
 const TOOL = 'mcp__your-call__ask'
@@ -16,7 +16,6 @@ const view = atom({ plugin: 'your-call', key: 'view' } as const, null)
 const plan = atom({ plugin: 'your-call', key: 'plan' } as const, null)
 const approvals = atom({ plugin: 'your-call', key: 'approvals' } as const, [])
 const ready = atom({ plugin: 'your-call', key: 'ready' } as const, false)
-const hiddenCard = atom({ plugin: 'your-call', key: 'hiddenCard' } as const, 0)
 const PLAN_PANE = 'your-call-plan'
 const APPROVE = 'mcp__your-call__approve'
 
@@ -426,35 +425,6 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  // A summary chart published by too-long-didnt-read, drawn here with the same chart code as `viz` blocks.
-  on('ui.render', { component: 'AbovePrompt' }, async ($, e, next) => {
-    const c = (await $.state.get({ plugin: 'too-long-didnt-read', key: 'card' })).value ?? null
-    const hidden = await read($, hiddenCard)
-
-    if (!c || c.id === hidden || e.props.hasSurvey) return next(e)
-
-    const { Box, Text, Button, Svg } = $.ui.resolve(e)
-    const rest = await next(e)
-    const svg = e.surface !== 'terminal' ? svgFor(c.viz) : undefined
-
-    return (
-      <Box flexDirection="column">
-        <Box>
-          <Text bold color="cyan">≡ TL;DR{'  '}</Text>
-          <Button key="tldr-hide" label="Hide" onPress={() => update($, hiddenCard, () => c.id)} />
-        </Box>
-        {svg && Svg ? (
-          <Svg key="tldr-chart" source={svg} alt={c.viz.title ?? 'summary chart'} />
-        ) : (
-          textLines(c.viz).map((l, i) => (
-            <Text key={`tl-${i}`}>{l}</Text>
-          ))
-        )}
-        {rest}
-      </Box>
-    )
-  })
-
   on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
     if (e.props.tool !== TOOL && e.props.tool !== APPROVE) return next(e)
     const { Text } = $.ui.resolve(e)
@@ -483,28 +453,47 @@ export const register: Register = (on, options) => {
     )
   })
 
+  // Charts in answers (```viz blocks), and the summary chart too-long-didnt-read published for this very answer.
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     const text = e.props.text
-    if (!text.includes('```viz')) return next(e)
+    const key = answerKey(text)
+    const card = ((await $.state.get({ plugin: 'too-long-didnt-read', key: 'cards' })).value ?? []).filter(c => c.key === key).at(-1)
+    if (!text.includes('```viz') && !card) return next(e)
 
     const { Box, Text, Markdown, Svg } = $.ui.resolve(e)
     const hasSvg = e.surface !== 'terminal'
-
-    return (
+    const chart = (viz: Parameters<typeof svgFor>[0], k: string) => {
+      const svg = hasSvg ? svgFor(viz) : undefined
+      if (svg && Svg) return <Svg key={`v${k}`} source={svg} alt={viz.title ?? 'chart'} />
+      return (
+        <Box key={`v${k}`} flexDirection="column">
+          {textLines(viz).map((l, j) => (
+            <Text key={`l${k}-${j}`}>{l}</Text>
+          ))}
+        </Box>
+      )
+    }
+    const body = text.includes('```viz') ? (
       <Box flexDirection="column">
         {splitViz(text).map((s, i) => {
           if (s.kind === 'text') return <Markdown key={`t${i}`} text={s.text} />
           if (s.kind === 'pending') return <Text key={`p${i}`} dimColor>drawing chart…</Text>
-          const svg = hasSvg ? svgFor(s.viz) : undefined
-          if (svg && Svg) return <Svg key={`v${i}`} source={svg} alt={s.viz.title ?? 'chart'} />
-          return (
-            <Box key={`v${i}`} flexDirection="column">
-              {textLines(s.viz).map((l, j) => (
-                <Text key={`l${i}-${j}`}>{l}</Text>
-              ))}
-            </Box>
-          )
+          return chart(s.viz, String(i))
         })}
+      </Box>
+    ) : (
+      await next(e)
+    )
+
+    return (
+      <Box flexDirection="column">
+        {body}
+        {card && (
+          <Box key="tldr-card" flexDirection="column">
+            <Text bold color="cyan">≡ TL;DR</Text>
+            {chart(card.viz, 'card')}
+          </Box>
+        )}
       </Box>
     )
   })

@@ -19,12 +19,14 @@ const reader = {
   name: 'reader',
   register(on: any) {
     on('command.run', { command: 'read-card' }, async ($: any) => ({
-      text: JSON.stringify((await $.state.get({ plugin: 'too-long-didnt-read', key: 'card' })).value ?? null),
+      text: JSON.stringify((await $.state.get({ plugin: 'too-long-didnt-read', key: 'cards' })).value ?? []),
     }))
   },
 }
 const plugins = [yourCall, reader] as never[]
-const card = async ($: any) => JSON.parse(((await $.command.run({ command: 'read-card', args: '' } as never)) as { text: string }).text)
+const allCards = async ($: any) => JSON.parse(((await $.command.run({ command: 'read-card', args: '' } as never)) as { text: string }).text)
+
+const card = async ($: any) => (await allCards($)).at(-1) ?? null
 
 const base = (on: any, replies: string[], toasts: string[] = []) => {
   on('model.complete', () => reply(replies.shift() ?? '') as never)
@@ -56,21 +58,27 @@ test('flow charts publish too', { plugins }, async ($, on) => {
   expect((await card($)).viz.lanes).toEqual([['plan', 'build', 'ship']])
 })
 
-test('unusable chart JSON falls back to a tree from the plain summary', { plugins }, async ($, on) => {
-  base(on, ['sorry, no json', 'Use Redis\nshared and TTLs\nrun the migration'])
+test('unusable chart JSON falls back to a small tree, which is small enough for a toast', { plugins }, async ($, on) => {
+  const toasts: string[] = []
+  base(on, ['sorry, no json', 'Use Redis\nshared and TTLs\nrun the migration'], toasts)
   await ready($)
   await $.turn.complete(turn(long))
-  const nodes = (await card($)).viz.nodes.map((n: { label: string }) => n.label)
-  expect(nodes).toEqual(['Verdict: Use Redis', 'Why: shared and TTLs', 'Next: run the migration'])
+  expect(await card($)).toBeNull()
+  expect(toasts.join('\n')).toBe('Verdict: Use Redis\nWhy: shared and TTLs\nNext: run the migration')
 })
 
-test('the chart clears when you send your next prompt', { plugins }, async ($, on) => {
-  base(on, ['{"type":"flow","lanes":[["a","b"]]}'])
+test('a small chart is a toast; a bigger one is kept for the thread, keyed to its answer, and stays after the next prompt', { plugins }, async ($, on) => {
+  const toasts: string[] = []
+  base(on, ['{"type":"tree","nodes":[{"label":"Verdict: yes"},{"label":"Next: ship"}]}', '{"type":"flow","lanes":[["a","b"]]}'], toasts)
   await ready($)
   await $.turn.complete(turn(long))
-  expect(await card($)).not.toBeNull()
-  await $.prompt.submit({ text: 'next' } as never)
+  expect(toasts).toEqual(['Verdict: yes\nNext: ship'])
   expect(await card($)).toBeNull()
+  await $.turn.complete(turn(long))
+  const c = await card($)
+  expect(c.key).toBe(`${long.trim().length}:${long.trim().slice(0, 60)}`)
+  await $.prompt.submit({ text: 'next' } as never)
+  expect(await card($)).not.toBeNull()
 })
 
 test('without your-call: says so once, then falls back to the toast', { plugins }, async ($, on) => {

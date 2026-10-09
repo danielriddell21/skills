@@ -62,3 +62,29 @@ test('pane: animated svg on desktop, glyph row in the terminal; Clear finished e
   await t.press({ key: 'clear' } as never)
   expect(await t.find({ text: /No subagents yet/ } as never)).toBeTruthy()
 })
+
+test('the pane opens by itself for a crew agent, not for other agents, and not when autoOpen is off', async ($, on) => {
+  const opened: string[] = []
+  base(on)
+  on('ui.panes', () => ({ value: [] }) as never)
+  on('ui.open', (_: unknown, e: { id: string }) => {
+    opened.push(e.id)
+    return { value: { isPlaced: true } } as never
+  })
+  await spawn($, 'Explore')
+  expect(opened).toEqual([])
+  await spawn($, 'who-wants-the-job:scout')
+  expect(opened).toEqual(['crew'])
+})
+
+test('autoOpen: false keeps the pane closed', { options: { autoOpen: false } }, async ($, on) => {
+  const opened: string[] = []
+  base(on)
+  on('ui.panes', () => ({ value: [] }) as never)
+  on('ui.open', (_: unknown, e: { id: string }) => {
+    opened.push(e.id)
+    return { value: { isPlaced: true } } as never
+  })
+  await spawn($, 'scout')
+  expect(opened).toEqual([])
+})

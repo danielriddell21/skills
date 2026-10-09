@@ -78,7 +78,7 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 
 ### `too-long-didnt-read`
 
-*mod* — `/tldr` summary; big answers get a small chart (bars, flow or tree) above the prompt, drawn by `your-call` (a dependency); modes off, on, auto, smart
+*mod* — `/tldr` summary; a small summary is a toast, a bigger one a chart (bars, flow or tree) under the answer, drawn by `your-call` (a dependency); modes off, on, auto, smart
 
 ### `tell-me-the-damage`
 

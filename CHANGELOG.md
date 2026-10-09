@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.4.3
+
+- `too-long-didnt-read`: summaries no longer go above the prompt (next to the context bar). A small one (3 lines of 40 columns) is a toast; a bigger one is a chart drawn by `your-call` in the thread under the answer it summarises, and stays there. Smart is still the default mode.
+- `who-wants-the-job`: the `/crew` pane now opens by itself when a crew agent (scout, engineer, spy, sniper) starts, whether `matchmaker` routed to it or not. Option `autoOpen: false` turns it off.
+
 ## 0.4.2
 
 - `who-wants-the-job` is now also a mod: `/crew` pane of every subagent (model, step progress, context %, estimated cost, time) with an animated pixel crab per run, in the Claude clay colour with a TF2 costume each (SVG; glyph row in the terminal), and a `♟ crew` chip with a Crew button in the shared chip row. Agents report steps through the new `step` tool. Idea from `savvy-progress`; code is new.

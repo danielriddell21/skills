@@ -113,3 +113,9 @@ export const svgFor = (v: Viz, opts: Option[] = []): string | undefined => {
 
   return undefined
 }
+
+/** Identifies an answer's text for matching a summary chart to its message; the same function is in too-long-didnt-read. */
+export const answerKey = (text: string): string => {
+  const t = text.trim()
+  return `${t.length}:${t.slice(0, 60)}`
+}

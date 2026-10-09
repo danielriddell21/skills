@@ -1,10 +1,13 @@
 import { atom, read, update } from 'claude-code'
 import type { Hook, Register } from 'claude-code'
 
-import { fitToast } from './toast'
-import { normalizeViz, parseJsonLoose, treeFromSummary } from './viz'
+import type { Card } from '../types'
 
-const card = atom({ plugin: 'too-long-didnt-read', key: 'card' } as const, null)
+import { fitToast } from './toast'
+import { answerKey, normalizeViz, parseJsonLoose, toastLines, treeFromSummary } from './viz'
+
+const cards = atom({ plugin: 'too-long-didnt-read', key: 'cards' } as const, [] as Card[])
+const MAX_CARDS = 20
 
 export const NEEDS_YOUR_CALL = 'TL;DR charts need the\nyour-call plugin. Showing text.'
 
@@ -114,7 +117,6 @@ export const register: Register = (on, options) => {
 
   on('prompt.submit', async ($, e, next) => {
     tools = 0
-    await update($, card, () => null)
     return next(e)
   })
 
@@ -141,7 +143,10 @@ export const register: Register = (on, options) => {
         if (drawn) {
           const viz = await summarizeViz($, e.answer)
           if (viz) {
-            await update($, card, () => ({ id: Date.now(), viz }))
+            // A small summary is a toast; anything bigger is a chart under the answer it summarises.
+            const lines = toastLines(viz)
+            if (lines) $.ui.toast(fitToast(lines.join('\n')), { timeoutMs: 20000 })
+            else await update($, cards, list => [...list, { id: Date.now(), key: answerKey(e.answer), viz }].slice(-MAX_CARDS))
             return next(e)
           }
         } else if (!toldAboutYourCall) {

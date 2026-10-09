@@ -17,9 +17,9 @@
   "userConfig": {
     "autoOpen": {
       "type": "boolean",
-      "title": "Open the crew pane when an agent starts",
-      "description": "Open /crew automatically on the first subagent",
-      "default": false
+      "title": "Open the crew pane when a crew agent starts",
+      "description": "Open /crew automatically when scout, engineer, spy or sniper starts (matchmaker routing or direct)",
+      "default": true
     }
   }
 }

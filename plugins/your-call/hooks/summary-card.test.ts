@@ -1,33 +1,37 @@
 import { expect, test } from 'claude-code/testing'
 
-const props = { hasSurvey: false, isWorking: false, maxRows: 10 } as never
+const text = 'The long answer about caching designs, with plenty of detail.'
 
-// Stand-in for too-long-didnt-read: owns the `card` state your-call draws.
+// Stand-in for too-long-didnt-read: owns the `cards` state your-call draws under the answer.
 const tldr = {
   name: 'too-long-didnt-read',
   register(on: any) {
     on('command.run', { command: 'publish' }, async ($: any, e: any) => {
       const [id, ...json] = e.args.split(' ')
-      await $.state.set({ plugin: 'too-long-didnt-read', key: 'card' }, { id: Number(id), viz: JSON.parse(json.join(' ')) })
+      const list = (await $.state.get({ plugin: 'too-long-didnt-read', key: 'cards' })).value ?? []
+      await $.state.set({ plugin: 'too-long-didnt-read', key: 'cards' }, [...list, { id: Number(id), key: '61:The long answer about caching designs, with plenty of detail', viz: JSON.parse(json.join(' ')) }])
       return { text: 'ok' }
     })
   },
 }
 const plugins = [tldr] as never[]
 const publish = ($: any, id: number, viz: object) => $.command.run({ command: 'publish', args: `${id} ${JSON.stringify(viz)}` } as never)
-const base = (on: any) => on('ui.render', () => ({ type: 'Box', props: {}, children: [] }) as never)
-const mount = ($: any, surface: 'terminal' | 'desktop' = 'terminal') => $.ui.mount({ plugin: 'your-call', surface, component: 'AbovePrompt', props })
+const base = (on: any) => on('ui.render', () => ({ type: 'Text', props: {}, children: ['the answer'] }) as never)
+const mount = ($: any, surface: 'terminal' | 'desktop' = 'terminal', t = text) =>
+  $.ui.mount({ plugin: 'your-call', surface, component: 'AssistantMessage', props: { text: t } })
 
-test('no card, no band', { plugins }, async ($, on) => {
+test('no card: the message is left alone', { plugins }, async ($, on) => {
   base(on)
   const m = await mount($)
   expect(await m.find({ text: /≡ TL;DR/ } as never)).toBeUndefined()
+  expect(await m.find({ text: /the answer/ } as never)).toBeTruthy()
 })
 
-test('a summary card is drawn above the prompt: bars, flow and tree as text', { plugins }, async ($, on) => {
+test('a summary card is drawn under its answer: bars, flow and tree as text', { plugins }, async ($, on) => {
   base(on)
   await publish($, 1, { type: 'bars', title: 'Options', values: { Redis: 8, Mem: 4 } })
   const m = await mount($)
+  expect(await m.find({ text: /the answer/ } as never)).toBeTruthy()
   expect(await m.find({ text: /≡ TL;DR/ } as never)).toBeTruthy()
   expect(await m.find({ text: /Redis +█+░* 8/ } as never)).toBeTruthy()
   await m.unmount()
@@ -41,16 +45,12 @@ test('a summary card is drawn above the prompt: bars, flow and tree as text', { 
   expect(await t.find({ text: /   └─ cheap/ } as never)).toBeTruthy()
 })
 
-test('Hide hides that card, and a newer card shows again', { plugins }, async ($, on) => {
+test('only the answer the chart belongs to gets it', { plugins }, async ($, on) => {
   base(on)
   await publish($, 5, { type: 'flow', lanes: [['a', 'b']] })
-  const m = await mount($)
-  await m.press({ key: 'tldr-hide' } as never)
-  expect(await m.find({ text: /≡ TL;DR/ } as never)).toBeUndefined()
-  await publish($, 6, { type: 'flow', lanes: [['c', 'd']] })
-  await m.unmount()
-  const again = await mount($)
-  expect(await again.find({ text: /c ──▶ d/ } as never)).toBeTruthy()
+  const other = await mount($, 'terminal', 'A different answer entirely.')
+  expect(await other.find({ text: /≡ TL;DR/ } as never)).toBeUndefined()
+  expect(await other.find({ text: /the answer/ } as never)).toBeTruthy()
 })
 
 test('on desktop surfaces bars and quadrants are drawn as SVG, flow stays text', { plugins }, async ($, on) => {

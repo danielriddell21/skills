@@ -88,7 +88,7 @@ export const register: Register = (on, options) => {
     }
     await update($, agents, list => [...list.filter(a => a.id !== run.id), run].slice(-60))
     await update($, now, () => at)
-    if (options.autoOpen === true && !(await $.ui.panes()).some(p => p.id === PANE)) void $.ui.open({ id: PANE, title: 'Crew' })
+    if (options.autoOpen !== false && memberOf(e.subagentType).name !== 'agent' && !(await $.ui.panes()).some(p => p.id === PANE)) void $.ui.open({ id: PANE, title: 'Crew' })
     return started
   })
 

@@ -1,7 +1,7 @@
 // The three chart shapes a summary can take: the same `viz` spec as your-call's charts, which draws them.
 import type { TreeNode, Viz } from '../types'
 
-import { clip } from './toast'
+import { clip, colWidth } from './toast'
 
 const LABEL = 36
 const MAX_ITEMS = 6
@@ -59,4 +59,19 @@ export const treeFromSummary = (summary: string): Viz | undefined => {
   const lines = summary.split('\n').map(l => l.replace(/^[-*•\d.)\s]+/, '').trim()).filter(Boolean)
   const nodes = lines.slice(0, 3).flatMap((l, i) => label(`${['Verdict', 'Why', 'Next'][i]}: ${l.replace(/^(verdict|why|next):?\s*/i, '')}`) ?? [])
   return nodes.length ? { type: 'tree', title: 'TL;DR', nodes: nodes.map(n => ({ label: n })) } : undefined
+}
+
+/** Identifies an answer's text for matching a chart to its message; the same function is in your-call. */
+export const answerKey = (text: string): string => {
+  const t = text.trim()
+  return `${t.length}:${t.slice(0, 60)}`
+}
+
+const flat = (nodes: TreeNode[]): string[] => nodes.flatMap(n => [n.label, ...flat(n.children ?? [])])
+
+/** The chart as toast lines when it is a small tree that fits 3 lines of 40 columns; otherwise undefined (draw it in the thread). */
+export const toastLines = (viz: Viz): string[] | undefined => {
+  if (viz.type !== 'tree') return undefined
+  const lines = flat(viz.nodes).filter(Boolean)
+  return lines.length >= 1 && lines.length <= 3 && lines.every(l => colWidth(l) <= 40) ? lines : undefined
 }

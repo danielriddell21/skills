@@ -5,7 +5,7 @@ command -v jq >/dev/null || { echo "jq required"; exit 1; }
 n=${1:-5}
 dir=${2:-$HOME/.claude/projects/$(pwd | sed 's#[/.]#-#g')}
 files=$(ls -t "$dir"/*.jsonl 2>/dev/null | head -n "$n")
-[ -n "$files" ] || { echo "no transcripts in $dir"; exit 1; }
+[[ -n "$files" ]] || { echo "no transcripts in $dir"; exit 1; }
 echo "Transcripts: $(echo "$files" | wc -l) from $dir"
 echo
 echo "model | input | output | cache_read | cache_write"

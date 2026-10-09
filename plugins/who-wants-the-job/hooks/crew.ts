@@ -48,7 +48,10 @@ export const costOf = (model: string, u: Usage): number => {
 
 export const windowOf = (model: string): number => (/1m/i.test(model) ? 1_000_000 : 200_000)
 
-export const fmtTokens = (n: number): string => (n < 1000 ? String(n) : n < 10_000 ? `${(n / 1000).toFixed(1)}k` : `${Math.round(n / 1000)}k`)
+export const fmtTokens = (n: number): string => {
+  if (n < 1000) return String(n)
+  return n < 10_000 ? `${(n / 1000).toFixed(1)}k` : `${Math.round(n / 1000)}k`
+}
 
 export const fmtCost = (usd: number): string => (usd < 0.01 ? '<$0.01' : `$${usd.toFixed(2)}`)
 
@@ -57,7 +60,7 @@ export const fmtTime = (ms: number): string => {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m${String(s % 60).padStart(2, '0')}s`
 }
 
-export const shortModel = (model: string): string => model.match(/haiku|sonnet|opus|fable/i)?.[0].toLowerCase() ?? (model || '?')
+export const shortModel = (model: string): string => /haiku|sonnet|opus|fable/i.exec(model)?.[0].toLowerCase() ?? (model || '?')
 
 export const elapsed = (r: CrewRun, at: number): number => Math.max(0, (r.endedAt ?? at) - r.startedAt)
 
@@ -92,7 +95,7 @@ export const chipText = (runs: readonly CrewRun[], at: number): string => {
   return t.running ? `♟ crew ${t.running}/${t.count} running · ≈${fmtCost(t.cost)}` : `♟ crew ${t.count} done · ≈${fmtCost(t.cost)}`
 }
 
-export const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
+export const esc = (s: string): string => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
 
 const CLAY = '#D97757'
 const INK = '#1F1E1D'
@@ -171,11 +174,22 @@ const clipTo = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n
 const ROW_CSS =
   '.t{fill:#1f1f1f}.s{fill:#6b6b68}.tr{fill:#e4e4e1}@media (prefers-color-scheme:dark){.t{fill:#ececec}.s{fill:#a8a8a4}.tr{fill:#333331}}'
 
+const progressOf = (r: CrewRun): number => {
+  if (r.stepTotal) return (r.stepDone ?? 0) / r.stepTotal
+  return r.status === 'done' ? 1 : ctxPct(r) / 100
+}
+
+const badgeOf = (r: CrewRun, width: number, color: string): string => {
+  if (r.status === 'failed') return `<text x="${width - 14}" y="16" font-size="14" fill="#d04b4b">✗</text>`
+  if (r.status === 'done') return `<text x="${width - 14}" y="16" font-size="14" fill="#3f9d6a">✓</text>`
+  return `<circle class="live" cx="${width - 8}" cy="11" r="3.5" fill="${color}"/>`
+}
+
 /** One run as a row: its crab on the left, then who it is, what it does, and how far along it is. */
 export const rowSvg = (r: CrewRun, at: number, width = 380): string => {
   const m = memberOf(r.type)
   const running = r.status === 'running'
-  const frac = r.stepTotal ? (r.stepDone ?? 0) / r.stepTotal : r.status === 'done' ? 1 : ctxPct(r) / 100
+  const frac = progressOf(r)
   const stats = [
     shortModel(r.model),
     r.stepTotal ? `${r.stepDone ?? 0}/${r.stepTotal} steps` : `ctx ${ctxPct(r)}%`,
@@ -183,7 +197,7 @@ export const rowSvg = (r: CrewRun, at: number, width = 380): string => {
     fmtTime(elapsed(r, at)),
   ].join(' · ')
   const note = r.stepNote ? ` · ${r.stepNote}` : ''
-  const badge = r.status === 'failed' ? `<text x="${width - 14}" y="16" font-size="14" fill="#d04b4b">✗</text>` : r.status === 'done' ? `<text x="${width - 14}" y="16" font-size="14" fill="#3f9d6a">✓</text>` : `<circle class="live" cx="${width - 8}" cy="11" r="3.5" fill="${m.color}"/>`
+  const badge = badgeOf(r, width, m.color)
   const bw = width - CRAB_W - 8
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${ROW_H}" width="${width}" height="${ROW_H}" font-family="system-ui,sans-serif"><style>${CRAB_CSS}${ROW_CSS}</style>${crab(m.name, !running, running, 2, 4, 1.65)}<text class="t" x="${CRAB_W}" y="17" font-size="13" font-weight="600">${esc(m.label)}<tspan class="s" font-weight="400">  ${esc(clipTo(r.description || '', 34))}</tspan></text><text class="s" x="${CRAB_W}" y="34" font-size="11">${esc(clipTo(stats + note, 52))}</text><rect class="tr" x="${CRAB_W}" y="42" width="${bw}" height="4" rx="2"/><rect x="${CRAB_W}" y="42" width="${Math.max(0, Math.min(1, frac)) * bw}" height="4" rx="2" fill="${m.color}"/>${badge}</svg>`
 }

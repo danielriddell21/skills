@@ -42,7 +42,10 @@ export const splitViz = (text: string): Segment[] => {
 /** Text chart. `opts` resolves option ids to labels; `picked` (your-call pane) marks chosen ids with `*`. */
 export const textLines = (v: Viz, opts: Option[] = [], picked?: string[]): string[] => {
   const head = v.title ? [v.title] : []
-  const mark = (id: string) => (picked === undefined ? '' : picked.includes(id) ? '* ' : '  ')
+  const mark = (id: string): string => {
+    if (picked === undefined) return ''
+    return picked.includes(id) ? '* ' : '  '
+  }
 
   if (v.type === 'bars') {
     const max = v.max ?? Math.max(1, ...Object.values(v.values))
@@ -57,11 +60,11 @@ export const textLines = (v: Viz, opts: Option[] = [], picked?: string[]): strin
   }
 
   if (v.type === 'quadrant') {
-    const grid = Array.from({ length: H }, () => Array<string>(W).fill(' '))
+    const grid = Array.from({ length: H }, () => new Array<string>(W).fill(' '))
     v.points.forEach((p, i) => {
       const c = Math.max(0, Math.min(W - 1, Math.round((p.x / 10) * (W - 1))))
       const r = H - 1 - Math.max(0, Math.min(H - 1, Math.round((p.y / 10) * (H - 1))))
-      grid[r][c] = String.fromCharCode(65 + i)
+      grid[r][c] = String.fromCodePoint(65 + i)
     })
     return [
       ...head,
@@ -69,7 +72,7 @@ export const textLines = (v: Viz, opts: Option[] = [], picked?: string[]): strin
       ...grid.map(row => `│${row.join('')}`),
       `└${'─'.repeat(W)}→ ${v.x}`,
       v.points
-        .map((p, i) => `${String.fromCharCode(65 + i)}=${pointLabel(opts, p)}${picked?.includes(p.id ?? '') ? '*' : ''}`)
+        .map((p, i) => `${String.fromCodePoint(65 + i)}=${pointLabel(opts, p)}${picked?.includes(p.id ?? '') ? '*' : ''}`)
         .join('  '),
     ]
   }
@@ -79,7 +82,7 @@ export const textLines = (v: Viz, opts: Option[] = [], picked?: string[]): strin
   return [...head, ...v.lanes.map(l => l.join(' ──▶ '))]
 }
 
-const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+const esc = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;')
 
 /** SVG for bars and quadrant; undefined for types that stay text. */
 export const svgFor = (v: Viz, opts: Option[] = []): string | undefined => {
@@ -118,4 +121,14 @@ export const svgFor = (v: Viz, opts: Option[] = []): string | undefined => {
 export const answerKey = (text: string): string => {
   const t = text.trim()
   return `${t.length}:${t.slice(0, 60)}`
+}
+
+/** Lines with a key that stays unique when a line repeats; for React keys without using an array index. */
+export const keyedLines = (lines: string[]): { key: string; line: string }[] => {
+  const seen = new Map<string, number>()
+  return lines.map(line => {
+    const n = (seen.get(line) ?? 0) + 1
+    seen.set(line, n)
+    return { key: `${line}#${n}`, line }
+  })
 }

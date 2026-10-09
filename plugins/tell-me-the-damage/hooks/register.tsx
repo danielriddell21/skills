@@ -18,14 +18,18 @@ export const fmtDuration = (ms: number): string => {
 
 export const fmtUsd = (usd: number): string => (usd < 0.01 ? '<$0.01' : `$${usd.toFixed(2)}`)
 
+const plural = (n: number, word: string): string => `${n} ${word}${n === 1 ? '' : 's'}`
+
 /** The one-line band text. */
 export const formatSummary = (s: Summary, showCost = true): string => {
   const parts: string[] = []
-  parts.push(s.files.length > 0 ? `${s.files.length} file${s.files.length === 1 ? '' : 's'}` : `${s.tools} tool call${s.tools === 1 ? '' : 's'}`)
+  parts.push(s.files.length > 0 ? plural(s.files.length, 'file') : plural(s.tools, 'tool call'))
   if (s.tests !== 'none') parts.push(`tests ${s.tests}`)
   parts.push(fmtDuration(s.ms))
   if (showCost && s.usd !== null && s.usd > 0) parts.push(fmtUsd(s.usd))
-  const icon = s.reason !== 'answer' ? '⏹' : s.tests === 'fail' ? '✗' : '✓'
+  let icon = '✓'
+  if (s.reason !== 'answer') icon = '⏹'
+  else if (s.tests === 'fail') icon = '✗'
   return `${icon} ${parts.join(' · ')}`
 }
 

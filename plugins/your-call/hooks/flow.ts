@@ -13,7 +13,7 @@ export const isVisible = (step: Step, picks: Picks): boolean => {
   if (!c) return true
   const chosen = picks[c.step] ?? []
   const yes = !c.picked || c.picked.some(id => chosen.includes(id))
-  const no = !c.notPicked || !c.notPicked.some(id => chosen.includes(id))
+  const no = !c.notPicked?.some(id => chosen.includes(id))
   return yes && no && (chosen.length > 0 || !!c.notPicked)
 }
 
@@ -112,12 +112,12 @@ export const withUndo = (before: View, after: View): View => ({
 })
 
 export const undoOf = (v: View): View => {
-  const prev = v.undo[v.undo.length - 1]
+  const prev = v.undo.at(-1)
   return prev ? { ...v, ...prev, undo: v.undo.slice(0, -1), redo: [...v.redo, snapOf(v)] } : v
 }
 
 export const redoOf = (v: View): View => {
-  const next = v.redo[v.redo.length - 1]
+  const next = v.redo.at(-1)
   return next ? { ...v, ...next, redo: v.redo.slice(0, -1), undo: [...v.undo, snapOf(v)] } : v
 }
 

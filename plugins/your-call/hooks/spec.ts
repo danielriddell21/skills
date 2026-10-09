@@ -86,6 +86,41 @@ export const expandShorthand = (raw: unknown): unknown => {
 
 export type Normalized = { ok: true; title: string; steps: Step[]; warnings: string[] } | { ok: false; error: string }
 
+/** Cap, de-duplicate the recommendation of, and reorder one step's options (recommended first, except for rank). */
+const tidyOptions = (list: Option[], id: string, kind: Step['kind'], warnings: string[]): Option[] => {
+  let options = list
+  if (options.length > MAX_OPTIONS) {
+    warnings.push(`step "${id}": showing the first ${MAX_OPTIONS} of ${options.length} options`)
+    options = options.slice(0, MAX_OPTIONS)
+  }
+  const seenRec = options.filter(o => o.recommended)
+  if (seenRec.length > 1 && kind !== 'many') {
+    options = options.map(o => (o === seenRec[0] ? o : { ...o, recommended: undefined }))
+    warnings.push(`step "${id}": only one option can be recommended; kept "${seenRec[0].label}"`)
+  }
+  if (kind !== 'rank' && options.some(o => o.recommended)) options = [...options.filter(o => o.recommended), ...options.filter(o => !o.recommended)]
+  return options
+}
+
+/** One step, cleaned up; the error text when it cannot be used. */
+const normStep = (r: unknown, i: number, ids: Set<string>, before: Step[], warnings: string[]): Step | string => {
+  const s: Raw = isObj(r) ? r : {}
+  let id = str(s.id, 40) ?? `s${i + 1}`
+  if (ids.has(id)) id = `${id}-${i + 1}`
+  ids.add(id)
+
+  const question = str(s.question, 300) ?? `Question ${i + 1}`
+  const kind = (KINDS as readonly unknown[]).includes(s.kind) ? (s.kind as Step['kind']) : 'one'
+  const parsed = normOptions(s.options)
+  if (parsed.length < 2) return `step "${id}" needs at least 2 options`
+
+  const options = tidyOptions(parsed, id, kind, warnings)
+  const audience = normAudience(s.audience, options)
+  const showIf = normShowIf(s.showIf, before.map(p => p.id), id, warnings)
+  const viz = isObj(s.viz) && typeof s.viz.type === 'string' ? (s.viz as unknown as Viz) : undefined
+  return { id, question, kind, options, criteria: normCriteria(s.criteria), viz, showIf, why: str(s.why, 200), audience, measured: s.measured === true ? true : undefined }
+}
+
 /** Clean up whatever the model sent so the pane never throws; say what is wrong when it cannot. */
 export const normalizeSpec = (input: unknown): Normalized => {
   const raw = expandShorthand(input)
@@ -98,31 +133,9 @@ export const normalizeSpec = (input: unknown): Normalized => {
   const ids = new Set<string>()
 
   for (const [i, r] of rawSteps.slice(0, MAX_STEPS).entries()) {
-    const s: Raw = isObj(r) ? r : {}
-    let id = str(s.id, 40) ?? `s${i + 1}`
-    if (ids.has(id)) id = `${id}-${i + 1}`
-    ids.add(id)
-
-    const question = str(s.question, 300) ?? `Question ${i + 1}`
-    const kind = (KINDS as readonly unknown[]).includes(s.kind) ? (s.kind as Step['kind']) : 'one'
-    let options = normOptions(s.options)
-
-    if (options.length < 2) return { ok: false, error: `step "${id}" needs at least 2 options` }
-    if (options.length > MAX_OPTIONS) {
-      warnings.push(`step "${id}": showing the first ${MAX_OPTIONS} of ${options.length} options`)
-      options = options.slice(0, MAX_OPTIONS)
-    }
-
-    const seenRec = options.filter(o => o.recommended)
-    if (seenRec.length > 1 && kind !== 'many') {
-      options = options.map(o => (o === seenRec[0] ? o : { ...o, recommended: undefined }))
-      warnings.push(`step "${id}": only one option can be recommended; kept "${seenRec[0].label}"`)
-    }
-    if (kind !== 'rank' && options.some(o => o.recommended)) options = [...options.filter(o => o.recommended), ...options.filter(o => !o.recommended)]
-    const audience = normAudience(s.audience, options)
-    const showIf = normShowIf(s.showIf, steps.map(p => p.id), id, warnings)
-    const viz = isObj(s.viz) && typeof s.viz.type === 'string' ? (s.viz as unknown as Viz) : undefined
-    steps.push({ id, question, kind, options, criteria: normCriteria(s.criteria), viz, showIf, why: str(s.why, 200), audience, measured: s.measured === true ? true : undefined })
+    const step = normStep(r, i, ids, steps, warnings)
+    if (typeof step === 'string') return { ok: false, error: step }
+    steps.push(step)
   }
 
   if (rawSteps.length > MAX_STEPS) warnings.push(`only the first ${MAX_STEPS} steps are shown`)

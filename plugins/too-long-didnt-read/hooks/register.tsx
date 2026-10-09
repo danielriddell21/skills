@@ -1,4 +1,4 @@
-import { atom, read, update } from 'claude-code'
+import { atom, update } from 'claude-code'
 import type { Hook, Register } from 'claude-code'
 
 import type { Card } from '../types'
@@ -79,6 +79,24 @@ const summarizeViz = async ($: Engine, text: string) => {
   return plain ? treeFromSummary(plain) : undefined
 }
 
+const isDrawn = async ($: Engine): Promise<boolean> => (await $.state.get({ plugin: 'your-call', key: 'ready' })).value === true
+
+/** A small summary is a toast; anything bigger is a chart under the answer it summarises. False when no chart could be made. */
+async function showSummary($: Engine, answer: string): Promise<boolean> {
+  const viz = await summarizeViz($, answer)
+  if (!viz) return false
+  const lines = toastLines(viz)
+  if (lines) $.ui.toast(fitToast(lines.join('\n')), { timeoutMs: 20000 })
+  else await update($, cards, list => [...list, { id: Date.now(), key: answerKey(answer), viz }].slice(-MAX_CARDS))
+  return true
+}
+
+async function toastSummary($: Engine, answer: string): Promise<void> {
+  const s = await summarize($, answer, true)
+  const text = s ? toastFrom(s) : ''
+  if (text) $.ui.toast(text, { timeoutMs: 20000 })
+}
+
 export const register: Register = (on, options) => {
   let mode: Mode = parseMode(String(options.defaultMode ?? '')) ?? 'smart'
   let last = ''
@@ -115,7 +133,7 @@ export const register: Register = (on, options) => {
     return { text: `tldr mode is ${mode}. Usage: /tldr | /tldr off|on|auto|smart` }
   })
 
-  on('prompt.submit', async ($, e, next) => {
+  on('prompt.submit', ($, e, next) => {
     tools = 0
     return next(e)
   })
@@ -137,27 +155,17 @@ export const register: Register = (on, options) => {
     last = e.answer
 
     if (wantSummary(mode, e.answer, tools)) {
+      let done = false
       if (options.widget !== false) {
         // The chart is drawn by your-call (a dependency); without it, say so once and fall back to the toast.
-        const drawn = (await $.state.get({ plugin: 'your-call', key: 'ready' })).value === true
-        if (drawn) {
-          const viz = await summarizeViz($, e.answer)
-          if (viz) {
-            // A small summary is a toast; anything bigger is a chart under the answer it summarises.
-            const lines = toastLines(viz)
-            if (lines) $.ui.toast(fitToast(lines.join('\n')), { timeoutMs: 20000 })
-            else await update($, cards, list => [...list, { id: Date.now(), key: answerKey(e.answer), viz }].slice(-MAX_CARDS))
-            return next(e)
-          }
-        } else if (!toldAboutYourCall) {
+        if (await isDrawn($)) done = await showSummary($, e.answer)
+        else if (!toldAboutYourCall) {
           toldAboutYourCall = true
           $.ui.toast(NEEDS_YOUR_CALL, { timeoutMs: 8000 })
         }
       }
       // Widget off, or no chart could be made: the old three-line toast.
-      const s = await summarize($, e.answer, true)
-      const text = s ? toastFrom(s) : ''
-      if (text) $.ui.toast(text, { timeoutMs: 20000 })
+      if (!done) await toastSummary($, e.answer)
     }
 
     return next(e)

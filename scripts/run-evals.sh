@@ -2,16 +2,16 @@
 # Runs evals/triggers.json: for each prompt, does headless Claude invoke the skill?
 # Usage: scripts/run-evals.sh [parallel=4]   (spends tokens; needs the claude CLI)
 set -u; root="$(git rev-parse --show-toplevel)"; cd "$root"
-par=${1:-4}; out=$(mktemp -d); work=$(mktemp -d); (cd "$work" && git init -q)
-dirs=$(for d in plugins/*/; do printf -- "--plugin-dir %s " "$root/$d"; done)
-jq -r '.skills | to_entries[] | .key as $k | (.value.should[]? | [$k,"should",.]), (.value.should_not[]? | [$k,"should_not",.]) | @tsv' evals/triggers.json > "$out/cases.tsv"
-run(){ IFS=$'\t' read -r skill kind prompt <<<"$1"; id=$(echo "$skill-$kind-$RANDOM")
-  hit=$(cd "$work" && timeout 180 claude -p "$prompt" $dirs --output-format stream-json --verbose --max-turns 3 --permission-mode plan 2>/dev/null \
+par=${1:-4}; OUT=$(mktemp -d); WORK=$(mktemp -d); (cd "$WORK" && git init -q)
+DIRS=$(for d in plugins/*/; do printf -- "--plugin-dir %s " "$root/$d"; done)
+jq -r '.skills | to_entries[] | .key as $k | (.value.should[]? | [$k,"should",.]), (.value.should_not[]? | [$k,"should_not",.]) | @tsv' evals/triggers.json > "$OUT/cases.tsv"
+run(){ local line="$1"; IFS=$'\t' read -r skill kind prompt <<<"$line"
+  hit=$(cd "$WORK" && timeout 180 claude -p "$prompt" $DIRS --output-format stream-json --verbose --max-turns 3 --permission-mode plan 2>/dev/null \
     | jq -r 'select(.type=="assistant") | .message.content[]? | select(.type=="tool_use" and .name=="Skill") | .input.skill' 2>/dev/null | tr '\n' ' ')
-  echo -e "$skill\t$kind\t$prompt\t$hit" >> "$out/results.tsv"; }
-export -f run; export out work dirs
-tr '\n' '\0' < "$out/cases.tsv" | xargs -0 -P "$par" -I{} bash -c 'run "$1"' _ {}
-python3 - "$out/results.tsv" <<'P'
+  echo -e "$skill\t$kind\t$prompt\t$hit" >> "$OUT/results.tsv"; return 0; }
+export -f run; export OUT WORK DIRS
+tr '\n' '\0' < "$OUT/cases.tsv" | xargs -0 -P "$par" -I{} bash -c 'run "$1"' _ {}
+python3 - "$OUT/results.tsv" <<'P'
 import sys,collections
 ok=bad=0
 for l in sorted(open(sys.argv[1])):

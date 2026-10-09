@@ -98,11 +98,13 @@ export const register: Register = (on, options) => {
     const { Box, Text, Button } = $.ui.resolve(e)
     const rest = await next(e)
     const hot = g.mode === 'yolo'
+    const auto = count > 0 ? ` · ${count} auto-approved` : ''
+    const note = g.phase === 'armed' ? ' (next turn)' : auto
     const chip = (
       <Box key={chipKey(RANK.gate, 'lgtm')}>
         <Text key="lgtm" color={hot ? 'red' : 'green'} bold>
           {hot ? '⚠' : '✓'} lgtm {g.mode}
-          {g.phase === 'armed' ? ' (next turn)' : count > 0 ? ` · ${count} auto-approved` : ''}{' '}
+          {note}{' '}
         </Text>
         <Button key="lgtm-off" label="Off" onPress={() => update($, gate, x => ({ mode: null, phase: 'off', since: x.since, allow: null }))} />
       </Box>

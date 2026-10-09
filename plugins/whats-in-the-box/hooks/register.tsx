@@ -28,7 +28,7 @@ const STEPS = stepsFor(50, 70, 85)
 
 /** Which warning (if any) fires at `pct`, given the highest already shown. */
 export const nextWarning = (pct: number, warned: number, steps: Step[] = STEPS): { warned: number; text?: string } => {
-  const lowest = steps[steps.length - 1][0]
+  const lowest = steps.at(-1)?.[0] ?? 0
   const base = pct < lowest - 10 ? 0 : warned
   const hit = steps.find(([t]) => pct >= t)
   return hit && hit[0] > base ? { warned: hit[0], text: hit[1] } : { warned: base }
@@ -52,7 +52,15 @@ const PALETTE = ['cyan', 'magenta', 'yellow', 'green', 'blue', 'red', 'white']
 const BAR_WIDTH = 36
 const LEGEND_MAX = 4
 
-export const fmtTokens = (n: number): string => (n >= 1000 ? `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k` : String(n))
+export const fmtTokens = (n: number): string => {
+  if (n < 1000) return String(n)
+  return `${(n / 1000).toFixed(n >= 10000 ? 0 : 1)}k`
+}
+
+const levelColor = (percent: number): string => {
+  if (percent >= 85) return 'red'
+  return percent >= 70 ? 'yellow' : 'cyan'
+}
 
 /** Cells per category for a bar `width` wide over `max` tokens; never more than `width` in total. */
 export const barCells = (rows: { name: string; tokens: number }[], max: number, width: number): { name: string; cells: number }[] => {
@@ -125,17 +133,18 @@ export const register: Register = (on, options) => {
         <Button key="compact" label="Compact" onPress={() => $.command.run({ command: 'compact', args: FOCUS })} />
       </Box>
     )
-    const below = !compact
-      ? rest
-      : (injectChips(rest, chip) ??
-        (isEmpty(rest) ? (
-          <Box key="chips" flexWrap="wrap">{chip}</Box>
-        ) : (
+    let below: unknown = rest
+    if (compact) {
+      below = injectChips(rest, chip)
+      if (!below && isEmpty(rest)) below = <Box key="chips" flexWrap="wrap">{chip}</Box>
+      else if (!below)
+        below = (
           <Box flexDirection="column">
             <Box key="chips" flexWrap="wrap">{chip}</Box>
             {rest}
           </Box>
-        )))
+        )
+    }
 
     if (!showBar || !s) return below as never
 
@@ -184,7 +193,7 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
-        <Text bold color={s.percent >= 85 ? 'red' : s.percent >= 70 ? 'yellow' : 'cyan'}>
+        <Text bold color={levelColor(s.percent)}>
           ■ Context  {Math.round(s.percent)}%  {fmtTokens(s.total)}/{fmtTokens(s.max)}
         </Text>
         <Text dimColor>{'─'.repeat(40)}</Text>

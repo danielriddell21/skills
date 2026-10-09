@@ -5,12 +5,50 @@ import type { Approval, PlanRow, PlanView, Step, View } from '../types'
 
 import { cardLines } from './card'
 import { defaultTicks, gatePermitsItem, normalizePlan } from './plan'
-import type { PlanItem } from './plan'
 import { CONFIDENCE, OTHER, initialPicks, isComplete, lastKey, nextVisible, prevVisible, recommendedFor, redoOf, resetDependents, resumeFrom, toggleVeto, undoOf, visibleIdx, weightKey, weightOf, weightedTotals, withUndo } from './flow'
 import { normalizeSpec } from './spec'
-import { answerKey, splitViz, svgFor, textLines } from './viz'
+import { answerKey, keyedLines, splitViz, svgFor, textLines } from './viz'
 
 const PANE = 'your-call'
+
+/** The `last` store after these decisions: the picks to offer again next time, per question. */
+const nextLast = (saved: Record<string, string[]>, decisions: { question: string; picks: string[] }[]): Record<string, string[]> => {
+  const next = { ...saved }
+  for (const d of decisions) {
+    const p = d.picks.filter(x => x !== OTHER)
+    if (p.length) next[lastKey(d.question)] = p
+  }
+  return next
+}
+
+const toggled = (list: string[], id: string): string[] => (list.includes(id) ? list.filter(x => x !== id) : [...list, id])
+
+/** `list` with `id` moved `d` places; the same list when it would fall off either end. */
+const moved = (list: string[], id: string, d: number): string[] => {
+  const i = list.indexOf(id)
+  const j = i + d
+  if (i < 0 || j < 0 || j >= list.length) return list
+  const out = [...list]
+  const held = out[i]
+  out[i] = out[j]
+  out[j] = held
+  return out
+}
+
+const riskTone = (r: PlanRow['risk']): string => {
+  if (r === 'high') return 'red'
+  return r === 'medium' ? 'yellow' : 'green'
+}
+
+const markOf = (many: boolean, on: boolean): string => {
+  if (many) return on ? '☑' : '☐'
+  return on ? '◉' : '○'
+}
+
+const progressTone = (here: boolean, done: boolean): string | undefined => {
+  if (here) return 'cyan'
+  return done ? 'green' : undefined
+}
 const TOOL = 'mcp__your-call__ask'
 const view = atom({ plugin: 'your-call', key: 'view' } as const, null)
 const plan = atom({ plugin: 'your-call', key: 'plan' } as const, null)
@@ -274,15 +312,7 @@ export const register: Register = (on, options) => {
       const { steps, title, warnings } = norm
       const reply = (out: Outcome) => ({ result: JSON.stringify(warnings.length ? { ...out, warnings } : out) })
       const saved = remember ? (((await $.store.get('last')) as Record<string, string[]> | undefined) ?? {}) : {}
-      const remembered = (out: Outcome) => {
-        if (!remember || !('decisions' in out)) return
-        const next_ = { ...saved }
-        for (const d of out.decisions as { question: string; picks: string[] }[]) {
-          const p = d.picks.filter(x => x !== OTHER)
-          if (p.length) next_[lastKey(d.question)] = p
-        }
-        return $.store.set('last', next_)
-      }
+      const remembered = (out: Outcome) => (remember && 'decisions' in out ? $.store.set('last', nextLast(saved, out.decisions as { question: string; picks: string[] }[])) : undefined)
 
       // /lgtm: pre-approved by the gate, so take the recommended option(s) without asking.
       const gate = ((await $.state.get({ plugin: 'looks-good-to-me', key: 'gate' })).value ?? null) as { phase?: string; mode?: string; allow?: { pick?: boolean } | null } | null
@@ -291,7 +321,8 @@ export const register: Register = (on, options) => {
         if (rec) {
           const decisions = buildDecisions(blankView(title, steps, rec), rec)
           const at = await $.clock.now()
-          await update($, approvals, (l: Approval[]) => [...l, ...decisions.map(d => ({ at, kind: 'pick', detail: d.question }))].slice(-200))
+          const entries = decisions.map(d => ({ at, kind: 'pick', detail: d.question }))
+          await update($, approvals, (l: Approval[]) => [...l, ...entries].slice(-200))
           history.push({ title, at, steps, decisions, state: stateOf(blankView(title, steps, rec)) })
           return reply({ decisions, autoApproved: true })
         }
@@ -386,7 +417,8 @@ export const register: Register = (on, options) => {
       const logAuto = async () => {
         if (auto.length === 0) return
         const at = await $.clock.now()
-        await update($, approvals, (l: Approval[]) => [...l, ...auto.map(i => ({ at, kind: 'plan', detail: i.label }))].slice(-200))
+        const entries = auto.map(i => ({ at, kind: 'plan', detail: i.label }))
+        await update($, approvals, (l: Approval[]) => [...l, ...entries].slice(-200))
       }
 
       if (rest.length === 0) {
@@ -425,7 +457,7 @@ export const register: Register = (on, options) => {
     return next(e)
   })
 
-  on('ui.render', { component: 'ToolUse' }, async ($, e, next) => {
+  on('ui.render', { component: 'ToolUse' }, ($, e, next) => {
     if (e.props.tool !== TOOL && e.props.tool !== APPROVE) return next(e)
     const { Text } = $.ui.resolve(e)
     const title = (e.props.input as { title?: string } | undefined)?.title
@@ -437,16 +469,16 @@ export const register: Register = (on, options) => {
     )
   })
 
-  on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
+  on('ui.render', { component: 'ToolResult' }, ($, e, next) => {
     if (e.props.tool !== TOOL && e.props.tool !== APPROVE) return next(e)
     const lines = cardLines(e.props.output)
     if (!lines) return next(e)
     const { Box, Text } = $.ui.resolve(e)
     return (
       <Box flexDirection="column">
-        {lines.map((l, i) => (
-          <Text key={`c-${i}`} color={i === 0 ? 'cyan' : undefined} bold={i === 0}>
-            {l}
+        {keyedLines(lines).map(({ key, line }, i) => (
+          <Text key={`c-${key}`} color={i === 0 ? 'cyan' : undefined} bold={i === 0}>
+            {line}
           </Text>
         ))}
       </Box>
@@ -457,7 +489,7 @@ export const register: Register = (on, options) => {
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     const text = e.props.text
     const key = answerKey(text)
-    const card = ((await $.state.get({ plugin: 'too-long-didnt-read', key: 'cards' })).value ?? []).filter(c => c.key === key).at(-1)
+    const card = ((await $.state.get({ plugin: 'too-long-didnt-read', key: 'cards' })).value ?? []).findLast(c => c.key === key)
     if (!text.includes('```viz') && !card) return next(e)
 
     const { Box, Text, Markdown, Svg } = $.ui.resolve(e)
@@ -473,12 +505,14 @@ export const register: Register = (on, options) => {
         </Box>
       )
     }
+    const segments = splitViz(text)
     const body = text.includes('```viz') ? (
       <Box flexDirection="column">
-        {splitViz(text).map((s, i) => {
-          if (s.kind === 'text') return <Markdown key={`t${i}`} text={s.text} />
-          if (s.kind === 'pending') return <Text key={`p${i}`} dimColor>drawing chart…</Text>
-          return chart(s.viz, String(i))
+        {keyedLines(segments.map(s => (s.kind === 'text' ? `t:${s.text}` : s.kind))).map(({ key }, i) => {
+          const s = segments[i]
+          if (s.kind === 'text') return <Markdown key={`t${key}`} text={s.text} />
+          if (s.kind === 'pending') return <Text key={`p${key}`} dimColor>drawing chart…</Text>
+          return chart(s.viz, key)
         })}
       </Box>
     ) : (
@@ -512,8 +546,8 @@ export const register: Register = (on, options) => {
     const ticked = pv.ticked.filter(t => pending.some(r => r.id === t))
     const done = (ids: string[]) =>
       planFinish?.({ approved: ids, rejected: pv.rows.map(r => r.id).filter(id => !ids.includes(id)), autoApproved: autoIds.length ? autoIds : undefined, note: pv.note || undefined })
-    const toggle = (id: string) => setPlan(x => ({ ...x, ticked: x.ticked.includes(id) ? x.ticked.filter(t => t !== id) : [...x.ticked, id] }))
-    const tone = (r: PlanRow['risk']) => (r === 'high' ? 'red' : r === 'medium' ? 'yellow' : 'green')
+    const toggle = (id: string) => setPlan(x => ({ ...x, ticked: toggled(x.ticked, id) }))
+    const tone = riskTone
 
     return (
       <Box flexDirection="column">
@@ -589,17 +623,10 @@ export const register: Register = (on, options) => {
       if ((v.vetoed[step.id] ?? []).includes(id)) return
       if (auto) return finish?.({ decisions: buildDecisions(v, { ...v.picks, [step.id]: [id] }) })
       const cur = v.picks[step.id] ?? []
-      return setPicks(step.id, step.kind === 'many' ? (cur.includes(id) ? cur.filter(c => c !== id) : [...cur, id]) : [id])
+      return setPicks(step.id, step.kind === 'many' ? toggled(cur, id) : [id])
     }
 
-    const move = (id: string, d: number) => {
-      const o = [...(v.picks[step.id] ?? [])]
-      const i = o.indexOf(id)
-      const j = i + d
-      if (j < 0 || j >= o.length) return
-      ;[o[i], o[j]] = [o[j], o[i]]
-      return setPicks(step.id, o)
-    }
+    const move = (id: string, d: number) => setPicks(step.id, moved(v.picks[step.id] ?? [], id, d))
 
     const bump = (stepId: string, name: string, current: number, d: number) =>
       commit(x => ({ ...x, weights: { ...x.weights, [weightKey(stepId, name)]: Math.max(0, Math.min(10, current + d)) } }))
@@ -648,7 +675,7 @@ export const register: Register = (on, options) => {
           })}
           <Text dimColor>{open.length > 0 ? `${open.length} unanswered: click one to answer it.` : 'Click a line to change it.'}</Text>
           <Box>
-            <Button key="back" label="Back" onPress={() => set(x => ({ ...x, phase: 'step', idx: vis[vis.length - 1] ?? x.idx, fromReview: false }))} />
+            <Button key="back" label="Back" onPress={() => set(x => ({ ...x, phase: 'step', idx: vis.at(-1) ?? x.idx, fromReview: false }))} />
             <Button key="confirm" label="Confirm" onPress={() => (open.length === 0 ? finish?.({ decisions: buildDecisions(v) }) : undefined)} />
           </Box>
           <Text dimColor>Esc skips</Text>
@@ -662,6 +689,8 @@ export const register: Register = (on, options) => {
     const isLast = nxt === undefined
     const wt = step.kind === 'compare' && step.criteria ? weightedTotals(step, v.weights) : undefined
     const many = vis.length > 1
+    let nextLabel = 'Next'
+    if (isLast || v.fromReview) nextLabel = many ? 'Review' : 'Confirm'
     const last = v.last[step.id] ?? []
     const recommended = step.options.find(o => o.recommended)
     const LIMIT = 6
@@ -678,8 +707,8 @@ export const register: Register = (on, options) => {
               const here = i === v.idx
               const done = isComplete(s, v.picks)
               return (
-                <Text key={`pg-${s.id}`} color={here ? 'cyan' : done ? 'green' : undefined} bold={here} dimColor={!here && !done}>
-                  {here ? '● ' : done ? '● ' : '○ '}
+                <Text key={`pg-${s.id}`} color={progressTone(here, done)} bold={here} dimColor={!here && !done}>
+                  {here || done ? '● ' : '○ '}
                   {short(s.question)}
                   {'  '}
                 </Text>
@@ -694,30 +723,30 @@ export const register: Register = (on, options) => {
 
         {step.audience && (
           <Box flexDirection="column">
-            {textLines({ type: 'bars', title: 'The audience says', values: step.audience.votes }, step.options, picks).map((l, i) => (
-              <Text key={`au-${i}`} dimColor>{l}</Text>
+            {keyedLines(textLines({ type: 'bars', title: 'The audience says', values: step.audience.votes }, step.options, picks)).map(({ key, line }) => (
+              <Text key={`au-${key}`} dimColor>{line}</Text>
             ))}
           </Box>
         )}
 
         {step.viz && (
           <Box flexDirection="column">
-            {textLines(step.viz, step.options, picks).map((l, i) => (
-              <Text key={`v-${i}`} dimColor>{l}</Text>
+            {keyedLines(textLines(step.viz, step.options, picks)).map(({ key, line }) => (
+              <Text key={`v-${key}`} dimColor>{line}</Text>
             ))}
           </Box>
         )}
 
         {step.kind === 'compare' && step.criteria && wt && (
           <Box flexDirection="column">
-            {step.criteria.map((c, ci) => {
+            {step.criteria.map(c => {
               const w = weightOf(step.id, c, v.weights)
               return (
                 <Box key={`c-${c.name}`}>
                   <Text>{c.name} </Text>
-                  <Button key={`wm-${ci}`} label="-" onPress={() => bump(step.id, c.name, w, -1)} />
+                  <Button key={`wm-${c.name}`} label="-" onPress={() => bump(step.id, c.name, w, -1)} />
                   <Text> weight {w} </Text>
-                  <Button key={`wp-${ci}`} label="+" onPress={() => bump(step.id, c.name, w, 1)} />
+                  <Button key={`wp-${c.name}`} label="+" onPress={() => bump(step.id, c.name, w, 1)} />
                   <Text dimColor> {step.options.map(o => `${o.label} ${c.scores[o.id] ?? '-'}`).join(' | ')}</Text>
                 </Box>
               )
@@ -745,7 +774,7 @@ export const register: Register = (on, options) => {
             })
           : shown.map((o, oi) => {
               const on_ = picks.includes(o.id)
-              const mark = step.kind === 'many' ? (on_ ? '☑' : '☐') : on_ ? '◉' : '○'
+              const mark = markOf(step.kind === 'many', on_)
               const isVetoed = vetoedHere.includes(o.id)
               return (
                 <Box key={`o-${o.id}`} flexDirection="column">
@@ -841,7 +870,7 @@ export const register: Register = (on, options) => {
           {prv !== undefined && <Button key="prev" label="Back" onPress={() => set(x => ({ ...x, idx: prv }))} />}
           <Button
             key="next"
-            label={isLast || v.fromReview ? (many ? 'Review' : 'Confirm') : 'Next'}
+            label={nextLabel}
             onPress={() => {
               if (!ready) return
               if (v.fromReview) return set(x => ({ ...x, phase: 'review', fromReview: false }))

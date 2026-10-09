@@ -12,6 +12,23 @@ const str = (v: unknown, max = 200): string | undefined => (typeof v === 'string
 
 export type NormalizedPlan = { ok: true; title: string; why?: string; items: PlanItem[]; warnings: string[] } | { ok: false; error: string }
 
+const toItem = (r: unknown, i: number, seen: Set<string>): PlanItem | undefined => {
+  const o: Raw = isObj(r) ? r : { label: r }
+  const label = str(o.label) ?? str(o.command)
+  if (!label) return undefined
+  let id = str(o.id, 40) ?? `i${i + 1}`
+  if (seen.has(id)) id = `${id}-${i + 1}`
+  seen.add(id)
+  return {
+    id,
+    label,
+    detail: str(o.detail, 300),
+    command: str(o.command, 300),
+    risk: (RISKS as unknown[]).includes(o.risk) ? (o.risk as Risk) : 'medium',
+    action: (ACTIONS as unknown[]).includes(o.action) ? (o.action as Action) : 'other',
+  }
+}
+
 /** Clean up an approve-plan request so the pane never throws. */
 export const normalizePlan = (raw: unknown): NormalizedPlan => {
   const spec: Raw = isObj(raw) ? raw : {}
@@ -20,23 +37,7 @@ export const normalizePlan = (raw: unknown): NormalizedPlan => {
 
   const warnings: string[] = []
   const seen = new Set<string>()
-  const items: PlanItem[] = []
-  for (const [i, r] of rawItems.entries()) {
-    const o: Raw = isObj(r) ? r : { label: r }
-    const label = str(o.label) ?? str(o.command)
-    if (!label) continue
-    let id = str(o.id, 40) ?? `i${i + 1}`
-    if (seen.has(id)) id = `${id}-${i + 1}`
-    seen.add(id)
-    items.push({
-      id,
-      label,
-      detail: str(o.detail, 300),
-      command: str(o.command, 300),
-      risk: (RISKS as unknown[]).includes(o.risk) ? (o.risk as Risk) : 'medium',
-      action: (ACTIONS as unknown[]).includes(o.action) ? (o.action as Action) : 'other',
-    })
-  }
+  const items = rawItems.flatMap((r, i) => toItem(r, i, seen) ?? [])
   if (items.length === 0) return { ok: false, error: 'every item needs a label' }
   if (items.length > MAX_ITEMS) {
     warnings.push(`showing the first ${MAX_ITEMS} of ${items.length} items`)

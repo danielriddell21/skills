@@ -2,7 +2,7 @@
 # Snapshot cheap-to-capture state before compaction; session-start-compact.sh re-injects it.
 command -v jq >/dev/null || exit 0
 sid=$(jq -r '.session_id // empty')
-[ -n "$sid" ] || exit 0
+[[ -n "$sid" ]] || exit 0
 dir="${CLAUDE_PROJECT_DIR:-.}"
 {
   echo "State captured before compaction:"

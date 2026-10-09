@@ -4,9 +4,10 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { CrewRun } from '../types'
 
 import { RANK, chipKey, injectChips, isEmpty } from './chips'
-import { chipText, costOf, ctxOf, ctxPct, elapsed, fmtCost, fmtTime, fmtTokens, memberOf, rowSvg, rowText, shortModel, tokensOf, totals, windowOf } from './crew'
+import { chipText, costOf, ctxOf, ctxPct, fmtCost, fmtTime, fmtTokens, memberOf, rowSvg, rowText, tokensOf, totals, windowOf } from './crew'
 
 const PANE = 'crew'
+const TONE = { running: 'yellow', done: 'green', failed: 'red' } as const
 const agents = atom({ plugin: 'who-wants-the-job', key: 'agents' } as const, [] as CrewRun[])
 const now = atom({ plugin: 'who-wants-the-job', key: 'now' } as const, 0)
 
@@ -70,25 +71,27 @@ export const register: Register = (on, options) => {
 
   on('agent.spawn', async ($, e, next) => {
     const started = await next(e)
-    if (started.deny !== undefined) return started
-    const at = await $.clock.now()
-    const run: CrewRun = {
-      id: started.agentId ?? e.tool_use_id,
-      agentId: started.agentId,
-      type: e.subagentType,
-      description: e.description,
-      model: started.model,
-      status: 'running',
-      startedAt: at,
-      ctxTokens: 0,
-      ctxMax: windowOf(started.model),
-      tokens: 0,
-      costUsd: 0,
-      steps: 0,
+    if (started.deny === undefined) {
+      const at = await $.clock.now()
+      const run: CrewRun = {
+        id: started.agentId ?? e.tool_use_id,
+        agentId: started.agentId,
+        type: e.subagentType,
+        description: e.description,
+        model: started.model,
+        status: 'running',
+        startedAt: at,
+        ctxTokens: 0,
+        ctxMax: windowOf(started.model),
+        tokens: 0,
+        costUsd: 0,
+        steps: 0,
+      }
+      await update($, agents, list => [...list.filter(a => a.id !== run.id), run].slice(-60))
+      await update($, now, () => at)
+      const isCrew = memberOf(e.subagentType).name !== 'agent'
+      if (options.autoOpen !== false && isCrew && !(await $.ui.panes()).some(p => p.id === PANE)) void $.ui.open({ id: PANE, title: 'Crew' })
     }
-    await update($, agents, list => [...list.filter(a => a.id !== run.id), run].slice(-60))
-    await update($, now, () => at)
-    if (options.autoOpen !== false && memberOf(e.subagentType).name !== 'agent' && !(await $.ui.panes()).some(p => p.id === PANE)) void $.ui.open({ id: PANE, title: 'Crew' })
     return started
   })
 
@@ -96,15 +99,16 @@ export const register: Register = (on, options) => {
   on('turn.step', async function* ($, e, next) {
     const result = yield* next(e)
     const usage = result.usage
-    if (!e.agentId || !usage) return result
-    const model = usage.model || e.model
-    await update($, agents, list =>
-      list.map(a =>
-        a.agentId !== e.agentId
-          ? a
-          : { ...a, model, status: 'running', endedAt: undefined, ctxTokens: ctxOf(usage), ctxMax: windowOf(model), tokens: a.tokens + tokensOf(usage), costUsd: a.costUsd + costOf(model, usage), steps: a.steps + 1 },
-      ),
-    )
+    if (e.agentId && usage) {
+      const model = usage.model || e.model
+      await update($, agents, list =>
+        list.map(a =>
+          a.agentId === e.agentId
+            ? { ...a, model, status: 'running', endedAt: undefined, ctxTokens: ctxOf(usage), ctxMax: windowOf(model), tokens: a.tokens + tokensOf(usage), costUsd: a.costUsd + costOf(model, usage), steps: a.steps + 1 }
+            : a,
+        ),
+      )
+    }
     return result
   })
 
@@ -168,7 +172,7 @@ export const register: Register = (on, options) => {
             <Svg key={`run:${a.id}`} source={rowSvg(a, at)} alt={`${memberOf(a.type).label}: ${a.description}`} />
           ) : (
             <Box key={`run:${a.id}`} flexDirection="column">
-              <Text color={a.status === 'failed' ? 'red' : a.status === 'done' ? 'green' : 'yellow'}>{`${memberOf(a.type).glyph} ${rowText(a, at)}`}</Text>
+              <Text color={TONE[a.status]}>{`${memberOf(a.type).glyph} ${rowText(a, at)}`}</Text>
               <Text dimColor>{`   ${a.description || '(no description)'} · ctx ${ctxPct(a)}% of ${fmtTokens(a.ctxMax)} · ${a.steps} requests`}</Text>
             </Box>
           ),

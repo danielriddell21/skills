@@ -67,7 +67,18 @@ const dangerousRm = (cmd: string): boolean => {
   }
   return false
 }
-const NOISY = /^\s*(cat\s|ls\s+-\w*R|find\s+\/|find\s+\.\s*$|git\s+log\s*$|npm\s+(test|run\s+test)|go\s+test\s+\.\.\.|pytest\s*$|docker\s+logs\b|kubectl\s+logs\b|journalctl\b)/
+const NOISY_PARTS = [
+  /^\s*cat\s/,
+  /^\s*ls\s+-\w*R/,
+  /^\s*find\s+(\/|\.\s*$)/,
+  /^\s*git\s+log\s*$/,
+  /^\s*npm\s+(test|run\s+test)/,
+  /^\s*go\s+test\s+\.\.\./,
+  /^\s*pytest\s*$/,
+  /^\s*(docker|kubectl)\s+logs\b/,
+  /^\s*journalctl\b/,
+]
+const isNoisy = (cmd: string): boolean => NOISY_PARTS.some(re => re.test(cmd))
 const CAPPED = /\||\bhead\b|\btail\b|\s>\s|\s-n\s?\d|--oneline|-maxdepth|--tail|--since/
 const SENSITIVE = new RegExp(
   [
@@ -83,7 +94,8 @@ export type Level = 'dangerous' | 'careful'
 
 export const classify = (cmd: string, extra?: RegExp, level: Level = 'dangerous'): 'risky' | 'noisy' | 'ok' => {
   const risky = DANGEROUS.test(cmd) || BRANCH_D.test(cmd) || dangerousRm(cmd) || (level === 'careful' && CAREFUL.test(cmd)) || extra?.test(cmd)
-  return risky ? 'risky' : NOISY.test(cmd) && !CAPPED.test(cmd) ? 'noisy' : 'ok'
+  if (risky) return 'risky'
+  return isNoisy(cmd) && !CAPPED.test(cmd) ? 'noisy' : 'ok'
 }
 
 export const isSensitivePath = (p: string): boolean => SENSITIVE.test(p)
@@ -97,7 +109,7 @@ const approvals = atom({ plugin: 'are-you-sure-bro', key: 'approvals' } as const
 const gateApproves = async ($: any, kind: 'danger' | 'sensitive', detail: string): Promise<boolean> => {
   try {
     const g = (await $.state.get({ plugin: 'looks-good-to-me', key: 'gate' })).value
-    if (!g || g.phase !== 'active' || !g.allow || !g.allow[kind]) return false
+    if (g?.phase !== 'active' || !g.allow?.[kind]) return false
     const at = await $.clock.now()
     await update($, approvals, (l: Approval[]) => [...l, { at, kind, detail: detail.replace(/\s+/g, ' ').slice(0, 200) }].slice(-200))
     return true

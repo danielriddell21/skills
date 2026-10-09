@@ -19,32 +19,58 @@ const asObject = (output: unknown): Record<string, unknown> | undefined => {
   return undefined
 }
 
+type Raw = Record<string, unknown>
+type Card = (o: Raw) => string[] | undefined
+
+const count = (v: unknown): number => (Array.isArray(v) ? v.length : 0)
+
+const errorCard: Card = o => (typeof o.error === 'string' ? [`◆ your call: could not ask (${o.error})`] : undefined)
+
+const cancelledCard: Card = o => (o.cancelled ? [o.timedOut ? '◆ your call: no answer, timed out' : '◆ your call: skipped'] : undefined)
+
+const planCard: Card = o => {
+  if (!Array.isArray(o.approved)) return undefined
+  const auto = count(o.autoApproved)
+  const autoText = auto ? `, ${auto} auto (lgtm)` : ''
+  const note = typeof o.note === 'string' && o.note ? `  (${o.note})` : ''
+  return [`◆ plan: approved ${o.approved.length}, skipped ${count(o.rejected)}${autoText}${note}`]
+}
+
+const deferredCard: Card = o => (o.deferred ? ['◆ your call: decide later'] : undefined)
+
+const explainCard: Card = o =>
+  o.explain && typeof o.explain === 'object' ? [`◆ your call: asked about "${(o.explain as { label?: string }).label ?? '?'}"`] : undefined
+
+const regenerateCard: Card = o => {
+  if (typeof o.regenerate !== 'string') return undefined
+  const vetoed = Object.values((o.vetoed as Record<string, string[]> | undefined) ?? {}).flat()
+  const rejected = vetoed.length ? ` (rejected: ${vetoed.join(', ')})` : ''
+  return ['◆ your call: none of these fit', `  ↻ ${o.regenerate}${rejected}`]
+}
+
+const decisionLine = (d: Decision): string => {
+  const picked = (d.labels?.length ? d.labels : (d.picks ?? [])).join(', ') || '(none)'
+  const notes = Object.values(d.notes ?? {}).filter(Boolean)
+  const extra = [d.confidence ? `${d.confidence} confidence` : '', ...notes, d.vetoed?.length ? `vetoed ${d.vetoed.length}` : ''].filter(Boolean)
+  const extraText = extra.length ? `  (${extra.join('; ')})` : ''
+  return `  ${d.question ?? d.step ?? '?'}  →  ${picked}${extraText}`
+}
+
+const decisionsCard: Card = o => {
+  if (!Array.isArray(o.decisions)) return undefined
+  const head = o.usedDefault ? '◆ your call (no answer: recommended option used)' : '◆ your call'
+  return [head, ...(o.decisions as Decision[]).map(decisionLine)]
+}
+
+const CARDS: Card[] = [errorCard, cancelledCard, planCard, deferredCard, explainCard, regenerateCard, decisionsCard]
+
 /** Lines for the card that replaces the raw JSON in the thread; undefined when it is not our result. */
 export const cardLines = (output: unknown): string[] | undefined => {
   const o = asObject(output)
   if (!o) return undefined
-  if (typeof o.error === 'string') return [`◆ your call: could not ask (${o.error})`]
-  if (o.cancelled) return [o.timedOut ? '◆ your call: no answer, timed out' : '◆ your call: skipped']
-  if (Array.isArray(o.approved)) {
-    const yes = o.approved.length
-    const no = Array.isArray(o.rejected) ? o.rejected.length : 0
-    const auto = Array.isArray(o.autoApproved) ? o.autoApproved.length : 0
-    const note = typeof o.note === 'string' && o.note ? `  (${o.note})` : ''
-    return [`◆ plan: approved ${yes}, skipped ${no}${auto ? `, ${auto} auto (lgtm)` : ''}${note}`]
+  for (const card of CARDS) {
+    const lines = card(o)
+    if (lines) return lines
   }
-  if (o.deferred) return ['◆ your call: decide later']
-  if (o.explain && typeof o.explain === 'object') return [`◆ your call: asked about "${(o.explain as { label?: string }).label ?? '?'}"`]
-  if (typeof o.regenerate === 'string') {
-    const vetoed = Object.values((o.vetoed as Record<string, string[]> | undefined) ?? {}).flat()
-    return ['◆ your call: none of these fit', `  ↻ ${o.regenerate}${vetoed.length ? ` (rejected: ${vetoed.join(', ')})` : ''}`]
-  }
-  if (!Array.isArray(o.decisions)) return undefined
-  const lines = [o.usedDefault ? '◆ your call (no answer: recommended option used)' : '◆ your call']
-  for (const d of o.decisions as Decision[]) {
-    const picked = (d.labels?.length ? d.labels : d.picks ?? []).join(', ') || '(none)'
-    const notes = Object.values(d.notes ?? {}).filter(Boolean)
-    const extra = [d.confidence ? `${d.confidence} confidence` : '', ...notes, d.vetoed?.length ? `vetoed ${d.vetoed.length}` : ''].filter(Boolean)
-    lines.push(`  ${d.question ?? d.step ?? '?'}  →  ${picked}${extra.length ? `  (${extra.join('; ')})` : ''}`)
-  }
-  return lines
+  return undefined
 }

@@ -250,7 +250,7 @@ const weighted = {
 test('compare: leader star moves when you change a weight; result carries weights and leader', { timeoutMs: 40000 }, async ($, on) => {
   const { call, m } = await open($, on, weighted, 'w1')
   expect(await m.find({ text: /★ B 50/ } as never)).toBeTruthy()
-  for (let i = 0; i < 8; i++) await m.press({ key: 'wm-1' } as never)
+  for (let i = 0; i < 8; i++) await m.press({ key: 'wm-speed' } as never)
   expect(await m.find({ text: /★ A 25/ } as never)).toBeTruthy()
   await m.press({ key: 'p-a' } as never)
   await m.press({ key: 'next' } as never)

@@ -42,6 +42,16 @@ const viewFrom = (title: string, steps: Step[], resumed: ReturnType<typeof resum
 
 const LIMIT = 6
 
+type PickGate = { phase?: string; allow?: { pick?: boolean } | null } | null
+
+const pickPreApproved = (gate: PickGate): boolean => gate?.phase === 'active' && !!gate.allow?.pick
+
+/** The outcome of a one-question ask: the option the label names, or the person's own words. */
+const simpleOutcome = (s: Step, label: string): Outcome => {
+  const hit = s.options.find(o => o.label === label || `${o.label}${REC}` === label)
+  return { decisions: [{ step: s.id, question: s.question, picks: [hit?.id ?? OTHER], labels: [hit?.label ?? `Other: ${label}`], other: hit ? undefined : label }] }
+}
+
 const weightedFor = (step: Step, weights: Record<string, number>) => (step.kind === 'compare' && step.criteria ? weightedTotals(step, weights) : undefined)
 
 const nextLabelOf = (isLast: boolean, fromReview: boolean, many: boolean): string => {
@@ -350,7 +360,7 @@ export const register: Register = (on, options) => {
 
       // /lgtm: pre-approved by the gate, so take the recommended option(s) without asking.
       const gate = ((await $.state.get({ plugin: 'looks-good-to-me', key: 'gate' })).value ?? null) as { phase?: string; mode?: string; allow?: { pick?: boolean } | null } | null
-      if (gate?.phase === 'active' && gate.allow?.pick) {
+      if (pickPreApproved(gate)) {
         const rec = recommendedFor(steps)
         if (rec) {
           const decisions = buildDecisions(blankView(title, steps, rec), rec)
@@ -366,10 +376,7 @@ export const register: Register = (on, options) => {
         const s = steps[0]
         try {
           const label = await $.ui.ask(s.question, s.options.map(o => (o.recommended ? `${o.label}${REC}` : o.label)))
-          const hit = s.options.find(o => o.label === label || `${o.label}${REC}` === label)
-          const out: Outcome = {
-            decisions: [{ step: s.id, question: s.question, picks: [hit?.id ?? OTHER], labels: [hit?.label ?? `Other: ${label}`], other: hit ? undefined : label }],
-          }
+          const out = simpleOutcome(s, label)
           await remembered(out)
           return reply(out)
         } catch {

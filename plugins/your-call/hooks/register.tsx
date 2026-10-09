@@ -21,6 +21,40 @@ const nextLast = (saved: Record<string, string[]>, decisions: { question: string
   return next
 }
 
+const viewFrom = (title: string, steps: Step[], resumed: ReturnType<typeof resumeFrom>, saved: Record<string, string[]>): View => ({
+  title,
+  steps,
+  idx: 0,
+  picks: { ...initialPicks(steps), ...resumed.picks },
+  notes: resumed.notes ?? {},
+  phase: 'step',
+  regen: '',
+  weights: resumed.weights ?? {},
+  fromReview: false,
+  others: resumed.others ?? {},
+  last: Object.fromEntries(steps.map(s => [s.id, saved[lastKey(s.question)] ?? []])),
+  vetoed: resumed.vetoed ?? {},
+  confidence: resumed.confidence ?? {},
+  undo: [],
+  redo: [],
+  showAll: {},
+})
+
+const LIMIT = 6
+
+const weightedFor = (step: Step, weights: Record<string, number>) => (step.kind === 'compare' && step.criteria ? weightedTotals(step, weights) : undefined)
+
+const nextLabelOf = (isLast: boolean, fromReview: boolean, many: boolean): string => {
+  if (!isLast && !fromReview) return 'Next'
+  return many ? 'Review' : 'Confirm'
+}
+
+const isAutoConfirm = (autoConfirm: boolean, stepCount: number, kind: Step['kind']): boolean => autoConfirm && stepCount === 1 && kind === 'one'
+
+/** The options a step shows: all of them, or the first few plus anything already picked, until "show more". */
+const shownOptions = (step: Step, showAll: boolean, picks: string[]): Step['options'] =>
+  showAll || step.options.length <= LIMIT + 1 ? step.options : step.options.filter((o, i) => i < LIMIT || picks.includes(o.id))
+
 const toggled = (list: string[], id: string): string[] => (list.includes(id) ? list.filter(x => x !== id) : [...list, id])
 
 /** `list` with `id` moved `d` places; the same list when it would fall off either end. */
@@ -344,24 +378,7 @@ export const register: Register = (on, options) => {
       }
 
       const resumed = resumeFrom((e as unknown as { resume?: unknown }).resume, steps)
-      const v: View = {
-        title,
-        steps,
-        idx: 0,
-        picks: { ...initialPicks(steps), ...resumed.picks },
-        notes: resumed.notes ?? {},
-        phase: 'step',
-        regen: '',
-        weights: resumed.weights ?? {},
-        fromReview: false,
-        others: resumed.others ?? {},
-        last: Object.fromEntries(steps.map(s => [s.id, saved[lastKey(s.question)] ?? []])),
-        vetoed: resumed.vetoed ?? {},
-        confidence: resumed.confidence ?? {},
-        undo: [],
-        redo: [],
-        showAll: {},
-      }
+      const v = viewFrom(title, steps, resumed, saved)
       await update($, view, () => v)
 
       const outcome = new Promise<Outcome>(resolve => {
@@ -611,7 +628,7 @@ export const register: Register = (on, options) => {
     const step = v.steps[v.idx]
     const picks = v.picks[step.id] ?? []
     const vis = visibleIdx(v.steps, v.picks)
-    const auto = autoConfirm && v.steps.length === 1 && step.kind === 'one'
+    const auto = isAutoConfirm(autoConfirm, v.steps.length, step.kind)
 
     const setPicks = (stepId: string, next_: string[]) =>
       commit(x => {
@@ -687,14 +704,12 @@ export const register: Register = (on, options) => {
     const nxt = nextVisible(v.steps, v.picks, v.idx)
     const prv = prevVisible(v.steps, v.picks, v.idx)
     const isLast = nxt === undefined
-    const wt = step.kind === 'compare' && step.criteria ? weightedTotals(step, v.weights) : undefined
+    const wt = weightedFor(step, v.weights)
     const many = vis.length > 1
-    let nextLabel = 'Next'
-    if (isLast || v.fromReview) nextLabel = many ? 'Review' : 'Confirm'
+    const nextLabel = nextLabelOf(isLast, v.fromReview, many)
     const last = v.last[step.id] ?? []
     const recommended = step.options.find(o => o.recommended)
-    const LIMIT = 6
-    const shown = v.showAll[step.id] || step.options.length <= LIMIT + 1 ? step.options : step.options.filter((o, i) => i < LIMIT || picks.includes(o.id))
+    const shown = shownOptions(step, !!v.showAll[step.id], picks)
     const hiddenCount = step.options.length - shown.length
 
     return (

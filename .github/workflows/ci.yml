@@ -23,5 +23,5 @@ jobs:
         with:
           node-version: 22
       - run: sudo apt-get install -y jq
-      - run: npm install -g --ignore-scripts @anthropic-ai/claude-code@2.1.295
+      - run: npm install -g @anthropic-ai/claude-code@2.1.295 # NOSONAR: the CLI needs its install script to fetch the native binary
       - run: scripts/check-mods.sh

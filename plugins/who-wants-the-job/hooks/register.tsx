@@ -4,7 +4,7 @@ import type { EngineInterface, Register } from 'claude-code'
 import type { CrewRun } from '../types'
 
 import { RANK, chipKey, injectChips, isEmpty } from './chips'
-import { chipText, costOf, ctxOf, ctxPct, elapsed, fmtCost, fmtTime, fmtTokens, memberOf, rowText, sceneSvg, sceneText, shortModel, tokensOf, totals, windowOf } from './crew'
+import { chipText, costOf, ctxOf, ctxPct, elapsed, fmtCost, fmtTime, fmtTokens, memberOf, rowSvg, rowText, shortModel, tokensOf, totals, windowOf } from './crew'
 
 const PANE = 'crew'
 const agents = atom({ plugin: 'who-wants-the-job', key: 'agents' } as const, [] as CrewRun[])
@@ -156,24 +156,23 @@ export const register: Register = (on, options) => {
 
     const at = Math.max(await read($, now), ...list.map(a => a.startedAt), ...list.map(a => a.endedAt ?? 0))
     const t = totals(list, at)
-    const scene = e.surface !== 'terminal' && Svg ? <Svg key="scene" source={sceneSvg(list)} alt="The crew at work" /> : <Text key="scene" color="yellow">{sceneText(list)}</Text>
     const order = [...list.filter(a => a.status === 'running'), ...list.filter(a => a.status !== 'running').reverse()]
+    const svg = e.surface !== 'terminal' && Svg
 
     return (
       <Box flexDirection="column">
         <Text bold>{`♟ Crew  ${t.running} running · ${t.count} total · ≈${fmtCost(t.cost)} · ${fmtTokens(t.tokens)} tokens · ${fmtTime(t.time)}`}</Text>
         <Text dimColor>{'─'.repeat(40)}</Text>
-        {scene}
-        <Text> </Text>
-        {order.map(a => {
-          const m = memberOf(a.type)
-          return (
+        {order.map(a =>
+          svg ? (
+            <Svg key={`run:${a.id}`} source={rowSvg(a, at)} alt={`${memberOf(a.type).label}: ${a.description}`} />
+          ) : (
             <Box key={`run:${a.id}`} flexDirection="column">
-              <Text color={a.status === 'failed' ? 'red' : a.status === 'done' ? 'green' : 'yellow'}>{rowText(a, at)}</Text>
-              <Text dimColor>{`   ${m.glyph} ${a.description || '(no description)'} · ${shortModel(a.model)} · ctx ${ctxPct(a)}% of ${fmtTokens(a.ctxMax)} · ${a.steps} requests · ${fmtTime(elapsed(a, at))}`}</Text>
+              <Text color={a.status === 'failed' ? 'red' : a.status === 'done' ? 'green' : 'yellow'}>{`${memberOf(a.type).glyph} ${rowText(a, at)}`}</Text>
+              <Text dimColor>{`   ${a.description || '(no description)'} · ctx ${ctxPct(a)}% of ${fmtTokens(a.ctxMax)} · ${a.steps} requests`}</Text>
             </Box>
-          )
-        })}
+          ),
+        )}
         <Text dimColor>{'─'.repeat(40)}</Text>
         <Button key="clear" label="Clear finished" onPress={() => void update($, agents, l => l.filter(a => a.status === 'running'))} />
       </Box>

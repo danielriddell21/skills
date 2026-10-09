@@ -2,7 +2,7 @@ import { expect, test } from 'claude-code/testing'
 
 import type { CrewRun } from '../types'
 
-import { chipText, costOf, ctxPct, fmtCost, fmtTime, fmtTokens, memberOf, rowText, sceneSvg, sceneText, shortModel, totals, windowOf } from './crew'
+import { chipText, costOf, ctxPct, fmtCost, fmtTime, fmtTokens, memberOf, rowText, rowSvg, shortModel, totals, windowOf } from './crew'
 
 const run = (o: Partial<CrewRun> = {}): CrewRun => ({
   id: 'a',
@@ -54,18 +54,19 @@ test('ctxPct is capped; totals and chip count running agents', () => {
   expect(chipText([list[1]], 5000)).toBe('♟ crew 1 done · ≈$0.10')
 })
 
-test('sceneSvg: one character per run, animated only while running, escaped', () => {
-  const svg = sceneSvg([run(), run({ id: 'b', type: 'sniper', status: 'done' }), run({ id: 'c', type: 'engineer', status: 'failed' }), run({ id: 'd', type: 'spy' })])
-  expect(svg.startsWith('<svg')).toBe(true)
-  expect(svg).toContain('width="288"')
-  expect(svg).toContain('c-scout run')
-  expect(svg).toContain('c-sniper"')
-  expect(svg).not.toContain('c-sniper run')
-  expect(svg).toContain('prefers-reduced-motion')
-  for (const w of ['swing', 'turn', 'peek', 'glint']) expect(svg).toContain(w)
-  expect(sceneSvg(Array.from({ length: 20 }, (_, i) => run({ id: String(i) })), 4)).toContain('width="288"')
-})
-
-test('sceneText: a glyph and a mark per run', () => {
-  expect(sceneText([run(), run({ id: 'b', type: 'spy', status: 'done' })])).toBe('»●  ◐✓')
+test('rowSvg: crab on the left, label and stats beside it, animated only while running, escaped', () => {
+  const running = rowSvg(run({ description: 'find <auth> & more', stepDone: 2, stepTotal: 4 }), 6000)
+  expect(running.startsWith('<svg')).toBe(true)
+  expect(running).toContain('c-scout run')
+  expect(running).toContain('translate(2 4) scale(1.65)')
+  expect(running).toContain('find &lt;auth&gt; &amp; more')
+  expect(running).toContain('haiku · 2/4 steps · $0.03 · 5s')
+  expect(running).toContain('prefers-reduced-motion')
+  const done = rowSvg(run({ type: 'sniper', status: 'done', endedAt: 3000 }), 9000)
+  expect(done).toContain('c-sniper"')
+  expect(done).not.toContain('c-sniper run')
+  expect(done).toContain('✓')
+  expect(rowSvg(run({ type: 'engineer', status: 'failed' }), 0)).toContain('✗')
+  for (const w of ['swing', 'turn', 'peek', 'glint']) expect(running).toContain(w)
+  expect(rowSvg(run({ description: 'x'.repeat(100) }), 0)).toContain('…')
 })

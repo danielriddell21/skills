@@ -51,12 +51,12 @@ test('worker step tool draws a progress bar in the pane; main-loop calls are ign
   expect(await m.find({ text: /Engineer · haiku · .* 1\/4/ } as never)).toBeTruthy()
 })
 
-test('pane: animated svg on desktop, glyph row in the terminal; Clear finished empties it', async ($, on) => {
+test('pane: animated svg on desktop, glyph beside each row in the terminal; Clear finished empties it', async ($, on) => {
   base(on)
   await spawn($, 'spy')
   await $.turn.complete(done())
   const t = await pane($)
-  expect(await t.find({ text: /◐✓/ } as never)).toBeTruthy()
+  expect(await t.find({ text: /◐ ✓ Spy/ } as never)).toBeTruthy()
   const d = await pane($, 'desktop')
   expect(JSON.stringify(await d.drawn())).toContain('<svg')
   await t.press({ key: 'clear' } as never)

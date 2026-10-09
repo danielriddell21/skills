@@ -4,6 +4,7 @@
 
 - `too-long-didnt-read`: summaries no longer go above the prompt (next to the context bar). A small one (3 lines of 40 columns) is a toast; a bigger one is a chart drawn by `your-call` in the thread under the answer it summarises, and stays there. Smart is still the default mode.
 - `who-wants-the-job`: the `/crew` pane now opens by itself when a crew agent (scout, engineer, spy, sniper) starts, whether `matchmaker` routed to it or not. Option `autoOpen: false` turns it off.
+- `who-wants-the-job`: in the `/crew` pane each run is a row with its crab on the left (then who, what, stats, progress bar) instead of a strip of crabs on top.
 
 ## 0.4.2
 

@@ -94,8 +94,6 @@ export const chipText = (runs: readonly CrewRun[], at: number): string => {
 
 export const esc = (s: string): string => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 
-const CELL = 72
-const SCALE = 2.2
 const CLAY = '#D97757'
 const INK = '#1F1E1D'
 
@@ -152,7 +150,7 @@ const CRAB_CSS =
   '@keyframes turn{to{transform:rotate(360deg)}}@keyframes peek{25%{transform:translateX(1px)}75%{transform:translateX(-1px)}}@keyframes glint{50%{opacity:.15}}' +
   '@media (prefers-reduced-motion:reduce){*{animation:none!important}}'
 
-const crab = (name: string, dim: boolean, running: boolean): string => {
+const crab = (name: string, dim: boolean, running: boolean, x: number, y: number, scale: number): string => {
   const groups = new Map<string, string[]>([['bd', []]])
   const f: Fill = (x, y, w, h, c, cls = 'bd') => {
     if (!groups.has(cls)) groups.set(cls, [])
@@ -162,26 +160,30 @@ const crab = (name: string, dim: boolean, running: boolean): string => {
   const group = (cls: string): string => `<g class="${cls}">${(groups.get(cls) ?? []).join('')}</g>`
   const props = [...groups.keys()].filter(k => !['bd', 'la', 'lb'].includes(k))
   const main = `<g class="bd">${(groups.get('bd') ?? []).join('')}${props.map(group).join('')}</g>`
-  return `<g class="c-${name}${running ? ' run' : ''}" opacity="${dim ? 0.5 : 1}" shape-rendering="crispEdges" transform="translate(${(CELL - 30 * SCALE) / 2} 4) scale(${SCALE})">${main}${group('la')}${group('lb')}</g>`
+  return `<g class="c-${name}${running ? ' run' : ''}" opacity="${dim ? 0.5 : 1}" shape-rendering="crispEdges" transform="translate(${x} ${y}) scale(${scale})">${main}${group('la')}${group('lb')}</g>`
 }
 
-const character = (r: CrewRun, i: number): string => {
+const ROW_H = 56
+const CRAB_W = 54
+
+const clipTo = (s: string, n: number): string => (s.length > n ? `${s.slice(0, n - 1).trimEnd()}…` : s)
+
+const ROW_CSS =
+  '.t{fill:#1f1f1f}.s{fill:#6b6b68}.tr{fill:#e4e4e1}@media (prefers-color-scheme:dark){.t{fill:#ececec}.s{fill:#a8a8a4}.tr{fill:#333331}}'
+
+/** One run as a row: its crab on the left, then who it is, what it does, and how far along it is. */
+export const rowSvg = (r: CrewRun, at: number, width = 380): string => {
   const m = memberOf(r.type)
   const running = r.status === 'running'
-  const badge = r.status === 'failed' ? `<text x="60" y="12" font-size="14" fill="#d04b4b">✗</text>` : r.status === 'done' ? `<text x="60" y="12" font-size="14" fill="#3f9d6a">✓</text>` : `<circle class="live" cx="64" cy="8" r="3" fill="${m.color}"/>`
-  return `<g transform="translate(${i * CELL} 0)">${crab(m.name, !running, running)}<text x="${CELL / 2}" y="76" font-size="10" text-anchor="middle" fill="currentColor">${esc(m.label)}</text>${badge}</g>`
+  const frac = r.stepTotal ? (r.stepDone ?? 0) / r.stepTotal : r.status === 'done' ? 1 : ctxPct(r) / 100
+  const stats = [
+    shortModel(r.model),
+    r.stepTotal ? `${r.stepDone ?? 0}/${r.stepTotal} steps` : `ctx ${ctxPct(r)}%`,
+    fmtCost(r.costUsd),
+    fmtTime(elapsed(r, at)),
+  ].join(' · ')
+  const note = r.stepNote ? ` · ${r.stepNote}` : ''
+  const badge = r.status === 'failed' ? `<text x="${width - 14}" y="16" font-size="14" fill="#d04b4b">✗</text>` : r.status === 'done' ? `<text x="${width - 14}" y="16" font-size="14" fill="#3f9d6a">✓</text>` : `<circle class="live" cx="${width - 8}" cy="11" r="3.5" fill="${m.color}"/>`
+  const bw = width - CRAB_W - 8
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${ROW_H}" width="${width}" height="${ROW_H}" font-family="system-ui,sans-serif"><style>${CRAB_CSS}${ROW_CSS}</style>${crab(m.name, !running, running, 2, 4, 1.65)}<text class="t" x="${CRAB_W}" y="17" font-size="13" font-weight="600">${esc(m.label)}<tspan class="s" font-weight="400">  ${esc(clipTo(r.description || '', 34))}</tspan></text><text class="s" x="${CRAB_W}" y="34" font-size="11">${esc(clipTo(stats + note, 52))}</text><rect class="tr" x="${CRAB_W}" y="42" width="${bw}" height="4" rx="2"/><rect x="${CRAB_W}" y="42" width="${Math.max(0, Math.min(1, frac)) * bw}" height="4" rx="2" fill="${m.color}"/>${badge}</svg>`
 }
-
-/** The crew as an animated SVG scene: one crab per run, at most `max`. */
-export const sceneSvg = (runs: readonly CrewRun[], max = 8): string => {
-  const shown = runs.slice(-max)
-  const w = Math.max(1, shown.length) * CELL
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} 82" width="${w}" height="82" font-family="system-ui,sans-serif" color="#8b95a3"><style>${CRAB_CSS}</style>${shown.map(character).join('')}</svg>`
-}
-
-/** The crew in text for surfaces without SVG: one glyph per run. */
-export const sceneText = (runs: readonly CrewRun[], max = 12): string =>
-  runs
-    .slice(-max)
-    .map(r => `${memberOf(r.type).glyph}${r.status === 'running' ? '●' : r.status === 'done' ? '✓' : '✗'}`)
-    .join('  ')

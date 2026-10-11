@@ -24,7 +24,7 @@ const widthOf = (s: Surface) => Math.max(8, (s.columns || 18) - 2)
 export default function Slider(props: Props, s: Surface) {
   const { Box, Text } = s.elements
   latest.set(s, props)
-  const current = (): number => (s.state && s.state.seen === latest.get(s)?.value ? s.state.value : (latest.get(s)?.value ?? props.value))
+  const current = (): number => (s.state?.seen === latest.get(s)?.value && s.state ? s.state.value : (latest.get(s)?.value ?? props.value))
   const move = (v: number, dragging = s.state?.dragging ?? false) => {
     const p = latest.get(s) ?? props
     const next = snap(p, v)

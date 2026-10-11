@@ -103,9 +103,9 @@ test('choice + send: the button puts the filled prompt in the input box, never s
 test('table sort buttons cycle ascending, descending, off', async ($, on) => {
   base(on)
   const m = await msg($, block({ type: 'table', columns: ['Name', 'Score'], rows: [['a', 2], ['b', 10], ['c', 1]] }))
-  await m.press({ key: 'sort-1' } as never)
+  await m.press({ key: 'sort-Score' } as never)
   expect(await m.find({ text: /Score ↑/ } as never)).toBeTruthy()
-  await m.press({ key: 'sort-1' } as never)
+  await m.press({ key: 'sort-Score' } as never)
   expect(await m.find({ text: /Score ↓/ } as never)).toBeTruthy()
   expect(nextSort({ col: 1, desc: true }, 1)).toBeUndefined()
 })

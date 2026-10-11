@@ -106,6 +106,11 @@ const flow: Norm = (r, title) => {
   return lanes.length ? { type: 'flow', title, lanes } : undefined
 }
 
+const edgeParts = (e: unknown): unknown[] => {
+  if (Array.isArray(e)) return e
+  return isObj(e) ? [e.from, e.to, e.label] : []
+}
+
 const graph: Norm = (r, title) => {
   const ns = arr(r.nodes, ITEMS).flatMap(n => {
     const id = isObj(n) ? str(n.id, 32) : str(n, 32)
@@ -113,7 +118,7 @@ const graph: Norm = (r, title) => {
   })
   const ids = new Set(ns.map(n => n.id))
   const edges = arr(r.edges, 24).flatMap(e => {
-    const [from, to, label] = Array.isArray(e) ? e : isObj(e) ? [e.from, e.to, e.label] : []
+    const [from, to, label] = edgeParts(e)
     const f = str(from, 32)
     const t = str(to, 32)
     return f && t && ids.has(f) && ids.has(t) ? [opt({ from: f, to: t, label: str(label, 24) })] : []
@@ -250,7 +255,7 @@ export const splitBlocks = (text: string): Segment[] => {
     at = i + m[0].length
   }
   const rest = text.slice(at)
-  const open = rest.match(OPEN)
+  const open = OPEN.exec(rest)
   if (open?.index !== undefined) {
     if (open.index > 0) out.push({ kind: 'text', text: rest.slice(0, open.index) })
     const body = rest.slice(open.index + open[0].length)

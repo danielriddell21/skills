@@ -1,7 +1,7 @@
 import { atom, read, update } from 'claude-code'
 import type { Hook, Register } from 'claude-code'
 
-import type { Component, Sort } from '../types'
+import type { CalcInput, CalcOutput, Component, Sort } from '../types'
 
 import { evaluate, fmtNum } from './formula'
 import { answerKey, hasBlock, normalize, splitBlocks } from './spec'
@@ -43,27 +43,30 @@ export const shouldClassify = (text: string, hasOrigin: boolean, minChars = 40):
   return !hasOrigin && !t.startsWith('/') && t.length >= minChars
 }
 
+type Vars = Record<string, number | string>
+
+const numbersOf = (vars: Vars): Record<string, number> =>
+  Object.fromEntries(Object.entries(vars).filter((kv): kv is [string, number] => typeof kv[1] === 'number'))
+
+const inputValue = (raw: number | string | undefined, fallback: number): number => (typeof raw === 'number' ? raw : fallback)
+
 /** The values a block's controls hold now: calc inputs (as moved), choices, then each output with an id. */
-export const varsOf = (components: Component[], scope: string, vals: Record<string, number | string>): Record<string, number | string> => {
-  const vars: Record<string, number | string> = {}
-  for (const c of components) {
-    if (c.type === 'calc') for (const i of c.inputs) vars[i.id] = typeof vals[`${scope}/${i.id}`] === 'number' ? (vals[`${scope}/${i.id}`] as number) : i.value
-    if (c.type === 'choice') vars[c.id] = vals[`${scope}/${c.id}`] ?? c.value ?? ''
-  }
-  for (const c of components) {
-    if (c.type !== 'calc') continue
-    for (const o of c.outputs) {
-      const nums = Object.fromEntries(Object.entries(vars).filter((kv): kv is [string, number] => typeof kv[1] === 'number'))
-      const v = evaluate(o.formula, nums)
-      if (o.id && v !== undefined) vars[o.id] = Number(v.toFixed(o.digits ?? 6))
-    }
+export const varsOf = (components: Component[], scope: string, vals: Vars): Vars => {
+  const vars: Vars = {}
+  const calcs = components.filter((c): c is Extract<Component, { type: 'calc' }> => c.type === 'calc')
+  for (const c of calcs) for (const i of c.inputs) vars[i.id] = inputValue(vals[`${scope}/${i.id}`], i.value)
+  for (const c of components) if (c.type === 'choice') vars[c.id] = vals[`${scope}/${c.id}`] ?? c.value ?? ''
+  const outputs = calcs.flatMap(c => c.outputs).filter(o => o.id)
+  for (const o of outputs) {
+    const v = evaluate(o.formula, numbersOf(vars))
+    if (v !== undefined) vars[o.id as string] = Number(v.toFixed(o.digits ?? 6))
   }
   return vars
 }
 
 /** The send button's prompt with {id}s filled; an id with no value stays as written. */
-export const fillPrompt = (template: string, vars: Record<string, number | string>): string =>
-  template.replace(/\{(\w+)\}/g, (m, id: string) => {
+export const fillPrompt = (template: string, vars: Vars): string =>
+  template.replaceAll(/\{(\w+)\}/g, (m, id: string) => {
     const v = vars[id]
     if (v === undefined || v === '') return m
     return typeof v === 'number' ? fmtNum(v) : v
@@ -71,11 +74,17 @@ export const fillPrompt = (template: string, vars: Record<string, number | strin
 
 const trim = <T,>(m: Record<string, T>, n: number): Record<string, T> => Object.fromEntries(Object.entries(m).slice(-n))
 
-const mdCell = (c: string | number) => (typeof c === 'number' ? fmtNum(c) : c).replaceAll('|', '\\|')
+const mdCell = (c: string | number) => (typeof c === 'number' ? fmtNum(c) : c).replaceAll('|', String.raw`\|`)
+
+const arrowOf = (sort: Sort) => (sort.desc ? '↓' : '↑')
+const headerOf = (col: string, i: number, sort?: Sort) => (sort?.col === i ? `${col} ${arrowOf(sort)}` : col)
+const withUnit = (text: string, unit?: string) => (unit ? `${text} ${unit}` : text)
 
 export const tableMarkdown = (columns: string[], rows: (string | number)[][], sort?: Sort): string => {
-  const head = columns.map((c, i) => (sort?.col === i ? `${c} ${sort.desc ? '↓' : '↑'}` : c))
-  return [`| ${head.map(mdCell).join(' | ')} |`, `|${columns.map(() => ' --- ').join('|')}|`, ...sortedRows(rows, sort).map(r => `| ${r.map(mdCell).join(' | ')} |`)].join('\n')
+  const head = columns.map((c, i) => headerOf(c, i, sort))
+  const rule = columns.map(() => ' --- ').join('|')
+  const body = sortedRows(rows, sort).map(r => '| ' + r.map(mdCell).join(' | ') + ' |')
+  return ['| ' + head.map(mdCell).join(' | ') + ' |', '|' + rule + '|', ...body].join('\n')
 }
 
 /** Next sort for a press on column `col`: ascending, then descending, then none. */
@@ -84,171 +93,232 @@ export const nextSort = (cur: Sort | undefined, col: number): Sort | undefined =
   return cur.desc ? undefined : { col, desc: true }
 }
 
+/** React keys from labels that stay unique when a label repeats. */
+export const keysFor = (labels: string[]): string[] => {
+  const seen = new Map<string, number>()
+  return labels.map(l => {
+    const n = (seen.get(l) ?? 0) + 1
+    seen.set(l, n)
+    return n === 1 ? l : `${l}~${n}`
+  })
+}
+
 async function setValue($: Engine, key: string, v: number | string): Promise<void> {
   await update($, values, m => trim({ ...m, [key]: v }, MAX_KEYS))
 }
 
-/** One block of components, with their live controls; `scope` keeps each block's values apart. */
-async function drawBlock($: Engine, e: RenderEvent, scope: string, components: Component[], pending: boolean, skipped: number) {
-  const { Box, Text, Button, Markdown, Svg, Client } = $.ui.resolve(e) as unknown as Record<string, any>
-  const vals = await read($, values)
-  const sortMap = await read($, sorts)
-  // Client runs on terminal and desktop only; elsewhere a text bar and the − / + buttons.
-  const clientOk = (e.surface === 'terminal' || e.surface === 'desktop') && Client !== undefined && !(await read($, noClient))
-  const vars = varsOf(components, scope, vals)
-  const terminal = e.surface === 'terminal'
+async function cycleSort($: Engine, k: string, col: number): Promise<void> {
+  await update($, sorts, m => {
+    const n = nextSort(m[k], col)
+    const rest = Object.fromEntries(Object.entries(m).filter(([kk]) => kk !== k))
+    return trim(n ? { ...rest, [k]: n } : rest, MAX_KEYS)
+  })
+}
 
-  const lines = (k: string, ls: string[]) => (
+async function resetInputs($: Engine, keys: string[]): Promise<void> {
+  await update($, values, m => Object.fromEntries(Object.entries(m).filter(([kk]) => !keys.includes(kk))))
+}
+
+async function sendPrompt($: Engine, text: string): Promise<void> {
+  await $.prompt.fill({ text })
+  $.ui.toast('picture-this: in your prompt; press Enter to send', { timeoutMs: 4000 })
+}
+
+// What every renderer needs besides `$`: the surface's elements and the block's state.
+type Ctx = { el: Record<string, any>; scope: string; vars: Vars; sorts: Record<string, Sort>; terminal: boolean; clientOk: boolean }
+
+const linesOf = (ctx: Ctx, k: string, ls: string[]) => {
+  const { Box, Text } = ctx.el
+  return (
     <Box key={k} flexDirection="column">
-      {ls.map((l, j) => (
-        <Text key={`${k}-${j}`}>{l}</Text>
+      {keysFor(ls).map((key, j) => (
+        <Text key={key}>{ls[j]}</Text>
       ))}
     </Box>
   )
+}
 
-  const piece = (c: Component, i: number) => {
-    const k = `${scope}#${i}`
-    const title = titleOf(c)
-    const head = title ? (
-      <Text key={`${k}-h`} bold>
-        {title}
-      </Text>
-    ) : null
+const headOf = (ctx: Ctx, k: string, c: Component) => {
+  const title = titleOf(c)
+  return title ? (
+    <ctx.el.Text key={`${k}-h`} bold>
+      {title}
+    </ctx.el.Text>
+  ) : null
+}
 
-    if (c.type === 'table') {
-      const sort = sortMap[k]
-      const body = terminal ? lines(`${k}-b`, tableLines(c.columns, c.rows, sort)) : <Markdown key={`${k}-b`} text={tableMarkdown(c.columns, c.rows, sort)} />
-      return (
-        <Box key={k} flexDirection="column">
-          {head}
-          {body}
-          {c.rows.length > 1 && (
-            <Box key={`${k}-s`} flexWrap="wrap">
-              <Text key="l" dimColor>
-                sort:{' '}
-              </Text>
-              {c.columns.slice(0, 6).map((col, ci) => (
-                <Button key={`sort-${ci}`} label={sort?.col === ci ? `${col} ${sort.desc ? '↓' : '↑'}` : col} plain onPress={async () => update($, sorts, m => {
-                  const n = nextSort(m[k], ci)
-                  const { [k]: _, ...rest } = m
-                  return trim(n ? { ...rest, [k]: n } : rest, MAX_KEYS)
-                })} />
-              ))}
-            </Box>
-          )}
-        </Box>
-      )
-    }
-
-    if (c.type === 'calc') {
-      return (
-        <Box key={k} flexDirection="column">
-          {head}
-          {c.inputs.map(inp => {
-            const key = `${scope}/${inp.id}`
-            const v = vars[inp.id] as number
-            const step = (d: number) => setValue($, key, Math.min(inp.max, Math.max(inp.min, Number((v + d).toFixed(6)))))
-            return (
-              <Box key={`in-${inp.id}`} flexWrap="wrap">
-                <Text key="l">{`${inp.label}: `}</Text>
-                <Text key="v" bold>{`${fmtNum(v)}${inp.unit ? ` ${inp.unit}` : ''} `}</Text>
-                {clientOk ? (
-                  <Client key={`slider:${key}`} module="./slider.tsx" props={{ value: v, min: inp.min, max: inp.max, step: inp.step }} width={20} />
-                ) : (
-                  <Text key="bar" color="cyan">{sliderBar(v, inp.min, inp.max)}</Text>
-                )}
-                <Button key={`dn-${inp.id}`} label="−" onPress={async () => step(-inp.step)} />
-                <Button key={`up-${inp.id}`} label="+" onPress={async () => step(inp.step)} />
-              </Box>
-            )
-          })}
-          {c.outputs.map((o, j) => {
-            const nums = Object.fromEntries(Object.entries(vars).filter((kv): kv is [string, number] => typeof kv[1] === 'number'))
-            const out = evaluate(o.formula, nums)
-            return (
-              <Text key={`out-${j}`}>
-                {`${o.label}: `}
-                <Text key="n" bold color={out === undefined ? 'yellow' : 'green'}>
-                  {out === undefined ? '—' : `${fmtNum(out, o.digits)}${o.unit ? ` ${o.unit}` : ''}`}
-                </Text>
-              </Text>
-            )
-          })}
-          <Box key="reset-row">
-            <Button
-              key="reset"
-              label="Reset"
-              plain
-              dimColor
-              onPress={async () => update($, values, m => Object.fromEntries(Object.entries(m).filter(([kk]) => !c.inputs.some(inp => kk === `${scope}/${inp.id}`))))}
-            />
-          </Box>
-        </Box>
-      )
-    }
-
-    if (c.type === 'choice') {
-      const cur = vars[c.id]
-      return (
-        <Box key={k} flexDirection="column">
-          {head}
-          <Box key="opts" flexWrap="wrap">
-            {c.options.map(o => (
-              <Button key={`o-${o}`} label={`${cur === o ? '●' : '○'} ${o}`} variant={cur === o ? 'primary' : 'secondary'} onPress={async () => setValue($, `${scope}/${c.id}`, o)} />
-            ))}
-          </Box>
-        </Box>
-      )
-    }
-
-    if (c.type === 'send') {
-      const text = fillPrompt(c.prompt, vars)
-      return (
-        <Box key={k} flexDirection="column">
-          <Button
-            key="send"
-            label={`↩ ${c.label}`}
-            variant="primary"
-            onPress={async () => {
-              await $.prompt.fill({ text })
-              $.ui.toast('picture-this: in your prompt; press Enter to send', { timeoutMs: 4000 })
-            }}
-          />
-          <Text key="p" dimColor>
-            {text}
-          </Text>
-        </Box>
-      )
-    }
-
-    if (c.type === 'stat') {
-      return (
-        <Box key={k} flexDirection="column">
+function drawTable($: Engine, ctx: Ctx, k: string, c: Extract<Component, { type: 'table' }>) {
+  const { Box, Text, Button, Markdown } = ctx.el
+  const sort = ctx.sorts[k]
+  const body = ctx.terminal ? linesOf(ctx, `${k}-b`, tableLines(c.columns, c.rows, sort)) : <Markdown key={`${k}-b`} text={tableMarkdown(c.columns, c.rows, sort)} />
+  const cols = c.columns.slice(0, 6)
+  return (
+    <Box key={k} flexDirection="column">
+      {headOf(ctx, k, c)}
+      {body}
+      {c.rows.length > 1 && (
+        <Box key={`${k}-s`} flexWrap="wrap">
           <Text key="l" dimColor>
-            {c.label}
+            sort:{' '}
           </Text>
-          <Text key="v" bold>
-            {c.value}
-            {c.delta ? <Text key="d" color={c.delta.startsWith('-') ? 'red' : 'green'}>{`  ${c.delta}`}</Text> : null}
-          </Text>
-          {c.note ? <Text key="n" dimColor>{c.note}</Text> : null}
+          {keysFor(cols).map((ck, ci) => (
+            <Button key={`sort-${ck}`} label={headerOf(cols[ci] ?? ck, ci, sort)} plain onPress={() => cycleSort($, k, ci)} />
+          ))}
         </Box>
-      )
-    }
+      )}
+    </Box>
+  )
+}
 
-    const svg = !terminal && Svg ? svgFor(c) : undefined
-    if (svg) return <Svg key={k} source={svg} alt={title ?? c.type} />
-    return (
-      <Box key={k} flexDirection="column">
-        {head}
-        {lines(`${k}-b`, textLines(c, sortMap[k]))}
+function drawInput($: Engine, ctx: Ctx, inp: CalcInput) {
+  const { Box, Text, Button, Client } = ctx.el
+  const key = `${ctx.scope}/${inp.id}`
+  const v = ctx.vars[inp.id] as number
+  const step = (d: number) => setValue($, key, Math.min(inp.max, Math.max(inp.min, Number((v + d).toFixed(6)))))
+  const bar = ctx.clientOk ? (
+    <Client key={`slider:${key}`} module="./slider.tsx" props={{ value: v, min: inp.min, max: inp.max, step: inp.step }} width={20} />
+  ) : (
+    <Text key="bar" color="cyan">
+      {sliderBar(v, inp.min, inp.max)}
+    </Text>
+  )
+  return (
+    <Box key={`in-${inp.id}`} flexWrap="wrap">
+      <Text key="l">{inp.label + ': '}</Text>
+      <Text key="v" bold>
+        {withUnit(fmtNum(v), inp.unit) + ' '}
+      </Text>
+      {bar}
+      <Button key={`dn-${inp.id}`} label="−" onPress={() => step(-inp.step)} />
+      <Button key={`up-${inp.id}`} label="+" onPress={() => step(inp.step)} />
+    </Box>
+  )
+}
+
+function drawOutput(ctx: Ctx, o: CalcOutput, key: string) {
+  const { Text } = ctx.el
+  const out = evaluate(o.formula, numbersOf(ctx.vars))
+  const shown = out === undefined ? '—' : withUnit(fmtNum(out, o.digits), o.unit)
+  return (
+    <Text key={key}>
+      {o.label + ': '}
+      <Text key="n" bold color={out === undefined ? 'yellow' : 'green'}>
+        {shown}
+      </Text>
+    </Text>
+  )
+}
+
+function drawCalc($: Engine, ctx: Ctx, k: string, c: Extract<Component, { type: 'calc' }>) {
+  const { Box, Button } = ctx.el
+  const inputKeys = c.inputs.map(inp => `${ctx.scope}/${inp.id}`)
+  const outKeys = keysFor(c.outputs.map(o => `out-${o.id ?? o.label}`))
+  return (
+    <Box key={k} flexDirection="column">
+      {headOf(ctx, k, c)}
+      {c.inputs.map(inp => drawInput($, ctx, inp))}
+      {c.outputs.map((o, j) => drawOutput(ctx, o, outKeys[j] ?? o.label))}
+      <Box key="reset-row">
+        <Button key="reset" label="Reset" plain dimColor onPress={() => resetInputs($, inputKeys)} />
       </Box>
-    )
-  }
+    </Box>
+  )
+}
 
+function drawChoice($: Engine, ctx: Ctx, k: string, c: Extract<Component, { type: 'choice' }>) {
+  const { Box, Button } = ctx.el
+  const cur = ctx.vars[c.id]
+  return (
+    <Box key={k} flexDirection="column">
+      {headOf(ctx, k, c)}
+      <Box key="opts" flexWrap="wrap">
+        {c.options.map(o => (
+          <Button key={`o-${o}`} label={`${cur === o ? '●' : '○'} ${o}`} variant={cur === o ? 'primary' : 'secondary'} onPress={() => setValue($, `${ctx.scope}/${c.id}`, o)} />
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
+function drawSend($: Engine, ctx: Ctx, k: string, c: Extract<Component, { type: 'send' }>) {
+  const { Box, Text, Button } = ctx.el
+  const text = fillPrompt(c.prompt, ctx.vars)
+  return (
+    <Box key={k} flexDirection="column">
+      <Button key="send" label={`↩ ${c.label}`} variant="primary" onPress={() => sendPrompt($, text)} />
+      <Text key="p" dimColor>
+        {text}
+      </Text>
+    </Box>
+  )
+}
+
+function drawStat(ctx: Ctx, k: string, c: Extract<Component, { type: 'stat' }>) {
+  const { Box, Text } = ctx.el
+  const delta = c.delta ? (
+    <Text key="d" color={c.delta.startsWith('-') ? 'red' : 'green'}>
+      {'  ' + c.delta}
+    </Text>
+  ) : null
+  return (
+    <Box key={k} flexDirection="column">
+      <Text key="l" dimColor>
+        {c.label}
+      </Text>
+      <Text key="v" bold>
+        {c.value}
+        {delta}
+      </Text>
+      {c.note ? (
+        <Text key="n" dimColor>
+          {c.note}
+        </Text>
+      ) : null}
+    </Box>
+  )
+}
+
+function drawStatic(ctx: Ctx, k: string, c: Component) {
+  const { Box, Svg } = ctx.el
+  const svg = !ctx.terminal && Svg ? svgFor(c) : undefined
+  if (svg) return <Svg key={k} source={svg} alt={titleOf(c) ?? c.type} />
+  return (
+    <Box key={k} flexDirection="column">
+      {headOf(ctx, k, c)}
+      {linesOf(ctx, `${k}-b`, textLines(c, ctx.sorts[k]))}
+    </Box>
+  )
+}
+
+function drawPiece($: Engine, ctx: Ctx, c: Component, k: string) {
+  switch (c.type) {
+    case 'table':
+      return drawTable($, ctx, k, c)
+    case 'calc':
+      return drawCalc($, ctx, k, c)
+    case 'choice':
+      return drawChoice($, ctx, k, c)
+    case 'send':
+      return drawSend($, ctx, k, c)
+    case 'stat':
+      return drawStat(ctx, k, c)
+    default:
+      return drawStatic(ctx, k, c)
+  }
+}
+
+const skippedText = (n: number) => (n === 1 ? '(1 piece could not be drawn)' : `(${n} pieces could not be drawn)`)
+
+/** One block of components, with their live controls; `scope` keeps each block's values apart. */
+async function drawBlock($: Engine, e: RenderEvent, scope: string, components: Component[], pending: boolean, skipped: number) {
+  const el = $.ui.resolve(e) as unknown as Record<string, any>
+  const { Box, Text } = el
+  // Client runs on terminal and desktop only; elsewhere a text bar and the − / + buttons.
+  const clientOk = (e.surface === 'terminal' || e.surface === 'desktop') && el.Client !== undefined && !(await read($, noClient))
+  const ctx: Ctx = { el, scope, vars: varsOf(components, scope, await read($, values)), sorts: await read($, sorts), terminal: e.surface === 'terminal', clientOk }
   return (
     <Box key={`blk-${scope}`} flexDirection="column" gap={1}>
-      {components.map(piece)}
+      {components.map((c, i) => drawPiece($, ctx, c, `${scope}#${i}`))}
       {pending && (
         <Text key="pending" dimColor>
           drawing…
@@ -256,7 +326,7 @@ async function drawBlock($: Engine, e: RenderEvent, scope: string, components: C
       )}
       {skipped > 0 && !pending && (
         <Text key="skipped" dimColor>
-          {`(${skipped} piece${skipped === 1 ? '' : 's'} could not be drawn)`}
+          {skippedText(skipped)}
         </Text>
       )}
     </Box>
@@ -271,9 +341,11 @@ async function drawMessage($: Engine, e: RenderEvent, text: string, next: () => 
 
   let body: unknown
   if (hasBlock(text)) {
+    const segments = splitBlocks(text)
+    const keys = keysFor(segments.map(s => (s.kind === 'text' ? `t:${s.text.slice(0, 40)}` : `b:${s.block.index}`)))
     const parts = await Promise.all(
-      splitBlocks(text).map((s, i) =>
-        s.kind === 'text' ? <Markdown key={`t${i}`} text={s.text} /> : drawBlock($, e, `${key}#${s.block.index}`, s.block.components, s.block.pending, s.block.skipped),
+      segments.map((s, i) =>
+        s.kind === 'text' ? <Markdown key={keys[i]} text={s.text} /> : drawBlock($, e, `${key}#${s.block.index}`, s.block.components, s.block.pending, s.block.skipped),
       ),
     )
     body = <Box flexDirection="column">{parts}</Box>

@@ -40,12 +40,17 @@ export const sortedRows = (rows: (string | number)[][], sort?: Sort): (string | 
   return sort.desc ? out.reverse() : out
 }
 
+const headerText = (c: string, i: number, sort?: Sort): string => {
+  if (sort?.col !== i) return c
+  return sort.desc ? c + ' ↓' : c + ' ↑'
+}
+
 const cell = (c: string | number) => (typeof c === 'number' ? fmtNum(c) : c)
 
 export const tableLines = (columns: string[], rows: (string | number)[][], sort?: Sort): string[] => {
   const shown = sortedRows(rows, sort)
   const widths = columns.map((c, i) => Math.max(c.length + 2, ...shown.map(r => cell(r[i] ?? '').length)))
-  const head = columns.map((c, i) => pad(sort?.col === i ? `${c} ${sort.desc ? '↓' : '↑'}` : c, widths[i] ?? 0)).join(' │ ')
+  const head = columns.map((c, i) => pad(headerText(c, i, sort), widths[i] ?? 0)).join(' │ ')
   const rule = widths.map(w => '─'.repeat(w)).join('─┼─')
   const body = shown.map(r => r.map((c, i) => (typeof c === 'number' ? padL(cell(c), widths[i] ?? 0) : pad(c, widths[i] ?? 0))).join(' │ '))
   return [head, rule, ...body]
@@ -77,7 +82,8 @@ const scatterLines = (c: Extract<Component, { type: 'scatter' }>): string[] => {
 
 const graphLines = (c: Extract<Component, { type: 'graph' }>): string[] => {
   const label = new Map(c.nodes.map(n => [n.id, n.label]))
-  const edges = c.edges.map(e => `${label.get(e.from)} ──${e.label ? ` ${e.label} ` : ''}▶ ${label.get(e.to)}`)
+  const arrow = (l?: string) => (l ? '── ' + l + ' ▶' : '──▶')
+  const edges = c.edges.map(e => `${label.get(e.from)} ${arrow(e.label)} ${label.get(e.to)}`)
   const linked = new Set(c.edges.flatMap(e => [e.from, e.to]))
   return [...edges, ...c.nodes.filter(n => !linked.has(n.id)).map(n => `${n.label} (alone)`)]
 }
@@ -119,7 +125,7 @@ export const textLines = (c: Component, sort?: Sort): string[] => {
         ...(c.tags?.length ? [c.tags.map(t => `[${t}]`).join(' ')] : []),
       ]
     case 'stat':
-      return [`${c.value}${c.delta ? `  ${c.delta}` : ''}`, ...(c.note ? [c.note] : [])]
+      return [c.delta ? c.value + '  ' + c.delta : c.value, ...(c.note ? [c.note] : [])]
     case 'map':
       return [
         c.stops.map((s, i) => `(${i + 1}) ${s.label}`).join(' ──▶ '),

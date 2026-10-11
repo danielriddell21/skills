@@ -16,6 +16,9 @@ const svg = (w: number, h: number, body: string, title?: string) => {
   return `<svg xmlns="http://www.w3.org/2000/svg" ${FONT} viewBox="0 0 ${w} ${h}">${head}${body}</svg>`
 }
 const label = (x: number, y: number, s: string, extra = '') => `<text x="${r1(x)}" y="${r1(y)}" font-size="11" fill="${INK}"${extra}>${esc(s)}</text>`
+const tip = (text: string) => '<title>' + esc(text) + '</title>'
+const unitText = (n: number, unit?: string) => (unit ? fmtNum(n) + ' ' + unit : fmtNum(n))
+const endAnchor = (left: boolean) => (left ? ' text-anchor="end"' : '')
 const top = (title?: string) => (title ? 26 : 4)
 
 const bars = (c: Extract<Component, { type: 'bars' }>) => {
@@ -27,7 +30,8 @@ const bars = (c: Extract<Component, { type: 'bars' }>) => {
     .map(([k, n], i) => {
       const y = y0 + i * 26
       const w = Math.max(2, Math.round((n / max) * 200))
-      return `${label(0, y + 12, k)}<rect x="${lw}" y="${y}" width="${w}" height="16" rx="4" fill="${SERIES[0]}"><title>${esc(`${k}: ${fmtNum(n)}${c.unit ? ` ${c.unit}` : ''}`)}</title></rect>${label(lw + w + 6, y + 12, `${fmtNum(n)}${c.unit ? ` ${c.unit}` : ''}`)}`
+      const value = unitText(n, c.unit)
+      return `${label(0, y + 12, k)}<rect x="${lw}" y="${y}" width="${w}" height="16" rx="4" fill="${SERIES[0]}">${tip(k + ': ' + value)}</rect>${label(lw + w + 6, y + 12, value)}`
     })
     .join('')
   return svg(lw + 290, y0 + rows.length * 26 + 4, body, c.title)
@@ -48,7 +52,7 @@ const line = (c: Extract<Component, { type: 'line' }>) => {
     .map((k, s) => {
       const ys = c.series[k] ?? []
       const d = ys.map((v, i) => `${i ? 'L' : 'M'}${r1(sx(i))} ${r1(sy(v))}`).join(' ')
-      const dots = ys.map((v, i) => `<circle cx="${r1(sx(i))}" cy="${r1(sy(v))}" r="4" fill="${SERIES[s]}"><title>${esc(`${k}, ${c.x[i]}: ${fmtNum(v)}`)}</title></circle>`).join('')
+      const dots = ys.map((v, i) => `<circle cx="${r1(sx(i))}" cy="${r1(sy(v))}" r="4" fill="${SERIES[s]}">${tip(k + ', ' + (c.x[i] ?? '') + ': ' + fmtNum(v))}</circle>`).join('')
       return `<path d="${d}" fill="none" stroke="${SERIES[s]}" stroke-width="2"/>${dots}`
     })
     .join('')
@@ -73,10 +77,14 @@ const scatter = (c: Extract<Component, { type: 'scatter' }>) => {
       const cx = sx(p.x)
       const cy = sy(p.y)
       const left = cx > x0 + w * 0.65
-      return `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="6" fill="${SERIES[0]}"><title>${esc(`${p.label}: ${fmtNum(p.x)}, ${fmtNum(p.y)}`)}</title></circle>${label(left ? cx - 10 : cx + 10, cy + 4, p.label, left ? ' text-anchor="end"' : '')}`
+      const lx = left ? cx - 10 : cx + 10
+      return `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="6" fill="${SERIES[0]}">${tip(p.label + ': ' + fmtNum(p.x) + ', ' + fmtNum(p.y))}</circle>${label(lx, cy + 4, p.label, endAnchor(left))}`
     })
     .join('')
-  const axes = `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="${INK}" opacity=".5"/>${label(x0 + w / 2, y0 + h + 18, `${c.x} →`, ' text-anchor="middle"')}${label(12, y0 + h / 2, `${c.y} →`, ` text-anchor="middle" transform="rotate(-90 12 ${r1(y0 + h / 2)})"`)}`
+  const rotate = ' text-anchor="middle" transform="rotate(-90 12 ' + r1(y0 + h / 2) + ')"'
+  const xAxis = label(x0 + w / 2, y0 + h + 18, c.x + ' →', ' text-anchor="middle"')
+  const yAxis = label(12, y0 + h / 2, c.y + ' →', rotate)
+  const axes = `<rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="none" stroke="${INK}" opacity=".5"/>${xAxis}${yAxis}`
   return svg(x0 + w + 10, y0 + h + 26, `${axes}${mid}${dots}`, c.title)
 }
 
@@ -94,7 +102,8 @@ const pie = (c: Extract<Component, { type: 'pie' }>) => {
       a = b
       const color = SERIES[i % SERIES.length]
       const pct = Math.round((v / total) * 100)
-      return `<path d="${d}" fill="${color}" stroke="none"><title>${esc(`${k}: ${fmtNum(v)} (${pct}%)`)}</title></path><rect x="170" y="${top(c.title) + 14 + i * 22}" width="10" height="10" rx="2" fill="${color}"/>${label(186, top(c.title) + 23 + i * 22, `${k} ${pct}%`)}`
+      const share = pct + '%'
+      return `<path d="${d}" fill="${color}" stroke="none">${tip(k + ': ' + fmtNum(v) + ' (' + share + ')')}</path><rect x="170" y="${top(c.title) + 14 + i * 22}" width="10" height="10" rx="2" fill="${color}"/>${label(186, top(c.title) + 23 + i * 22, k + ' ' + share)}`
     })
     .join('')
   return svg(330, top(c.title) + 152, slices, c.title)
@@ -108,7 +117,7 @@ const GAP_Y = 22
 /** Columns by longest path from a source; cycles fall back to the order given. */
 export const layers = (ids: string[], edges: { from: string; to: string }[]): Map<string, number> => {
   const depth = new Map(ids.map(id => [id, 0]))
-  for (let pass = 0; pass < ids.length; pass++) {
+  for (const _ of ids) {
     let moved = false
     for (const e of edges) {
       const d = (depth.get(e.from) ?? 0) + 1
@@ -168,8 +177,8 @@ const graph = (c: Extract<Component, { type: 'graph' }>) => {
       return `<rect x="${p.x}" y="${p.y}" width="${NODE_W}" height="${NODE_H}" rx="6" fill="none" stroke="${SERIES[0]}" stroke-width="1.5"><title>${esc(n.label)}</title></rect><text x="${p.x + NODE_W / 2}" y="${p.y + 19}" font-size="12" text-anchor="middle" fill="${INK}">${esc(text)}</text>`
     })
     .join('')
-  const cols = Math.max(...[...depth.values()]) + 1
-  const maxRows = Math.max(...[...rows.values()])
+  const cols = Math.max(...depth.values()) + 1
+  const maxRows = Math.max(...rows.values())
   const defs = `<defs><marker id="pt-arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0 0L10 5L0 10z" fill="${INK}"/></marker></defs>`
   return svg(cols * (NODE_W + GAP_X) - GAP_X + 2, y0 + maxRows * (NODE_H + GAP_Y) + GAP_Y, `${defs}${lines}${boxes}`, c.title)
 }
@@ -201,12 +210,15 @@ const map = (c: Extract<Component, { type: 'map' }>) => {
     return { x: ox + ((lons[i] ?? 0) - oa) * kx * scale, y: oy + (lb - (lats[i] ?? 0)) * scale }
   }
   const pts = c.stops.map((_, i) => at(i))
-  const route = pts.length > 1 ? `<path d="${pts.map((p, i) => `${i ? 'L' : 'M'}${r1(p.x)} ${r1(p.y)}`).join(' ')}" fill="none" stroke="${SERIES[0]}" stroke-width="2" stroke-dasharray="5 4"/>` : ''
+  const routeD = pts.map((p, i) => (i ? 'L' : 'M') + r1(p.x) + ' ' + r1(p.y)).join(' ')
+  const route = pts.length > 1 ? `<path d="${routeD}" fill="none" stroke="${SERIES[0]}" stroke-width="2" stroke-dasharray="5 4"/>` : ''
   const dots = c.stops
     .map((s, i) => {
       const p = pts[i] ?? { x: 0, y: 0 }
       const left = p.x > w * 0.7
-      return `<circle cx="${r1(p.x)}" cy="${r1(p.y)}" r="9" fill="${SERIES[1]}"><title>${esc(s.note ? `${s.label}: ${s.note}` : s.label)}</title></circle><text x="${r1(p.x)}" y="${r1(p.y + 4)}" font-size="10" font-weight="700" text-anchor="middle" fill="#ffffff">${i + 1}</text>${label(left ? p.x - 13 : p.x + 13, p.y + 4, s.label, left ? ' text-anchor="end"' : '')}`
+      const lx = left ? p.x - 13 : p.x + 13
+      const note = s.note ? s.label + ': ' + s.note : s.label
+      return `<circle cx="${r1(p.x)}" cy="${r1(p.y)}" r="9" fill="${SERIES[1]}">${tip(note)}</circle><text x="${r1(p.x)}" y="${r1(p.y + 4)}" font-size="10" font-weight="700" text-anchor="middle" fill="#ffffff">${i + 1}</text>${label(lx, p.y + 4, s.label, endAnchor(left))}`
     })
     .join('')
   const frame = `<rect x="0" y="${y0}" width="${w}" height="${h}" rx="8" fill="none" stroke="${INK}" opacity=".35"/>${label(w - 6, y0 + h - 6, geo ? 'schematic, not to scale' : 'schematic: no coordinates', ' text-anchor="end" opacity=".7"')}`

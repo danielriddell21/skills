@@ -25,7 +25,7 @@ export const HINT: Record<string, string> = {
   'destructive-or-ambiguous':
     'Route: this request may be destructive, irreversible or ambiguous. If the ask-dont-guess skill is available, follow it: list assumptions and confirm with the user (mcp__your-call__ask) before acting.',
   'compare-or-explain-flow':
-    'Route: comparison or structure. If the show-dont-tell skill is available, follow it: answer with a chart or diagram (a fenced viz block) rather than prose alone.',
+    'Route: comparison, structure or a what-if. If the show-dont-tell skill is available, follow it: answer with picture-this components (a fenced ui block: chart, table, flow or graph, map, or a calc with a send button) rather than prose alone.',
   'second-opinion':
     'Route: the user wants a second opinion. If the phone-a-friend or ask-the-audience skill is available, follow it.',
 }
@@ -38,7 +38,7 @@ export const AGENT: Record<string, string> = {
   review: 'sniper',
   trivial: 'inline',
   'destructive-or-ambiguous': 'ask first',
-  'compare-or-explain-flow': 'chart it',
+  'compare-or-explain-flow': 'picture it',
   'second-opinion': 'second opinion',
 }
 

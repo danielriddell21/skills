@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- New `picture-this`: Open Intelligent UI for Claude Code. Claude writes a ```ui block (one JSON component per line, so finished lines draw while the rest streams) or calls the `show` tool; the mod draws it natively in the thread: bars, line, scatter/quadrant, pie, table (sortable), tree, flow, graph, card, stat and a schematic map (SVG on desktop, VS Code and mobile; text in the terminal). Live controls run locally with no model call: `calc` inputs with a slider (terminal and desktop) and − / + (everywhere) recompute formula outputs (a safe evaluator, no eval); `choice` picks; `send` puts the filled prompt in your input box and never submits. A cheap classifier suggests a component per prompt, skipped while `matchmaker` is on (its hint points here instead).
+- `your-call` no longer draws charts in replies, and the `show-dont-tell` skill moved to `picture-this`. Charts in the ask pane (`viz` on a step, audience tallies) stay in `your-call`.
+- `too-long-didnt-read` depends on `picture-this` instead of `your-call`; its summary charts are drawn by `picture-this` under the answer.
+- Every plugin's version is now the release version (0.5.0), so `plugin.json` matches the tag.
+
 ## 0.4.3
 
 - `too-long-didnt-read`: summaries no longer go above the prompt (next to the context bar). A small one (3 lines of 40 columns) is a toast; a bigger one is a chart drawn by `your-call` in the thread under the answer it summarises, and stays there. Smart is still the default mode.

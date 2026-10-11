@@ -1,4 +1,4 @@
-// The three chart shapes a summary can take: the same `viz` spec as your-call's charts, which draws them.
+// The three chart shapes a summary can take: the same `viz` spec as picture-this's charts, which draws them.
 import type { TreeNode, Viz } from '../types'
 
 import { clip, colWidth } from './toast'
@@ -72,7 +72,7 @@ export const treeFromSummary = (summary: string): Viz | undefined => {
   return nodes.length ? { type: 'tree', title: 'TL;DR', nodes: nodes.map(n => ({ label: n })) } : undefined
 }
 
-/** Identifies an answer's text for matching a chart to its message; the same function is in your-call. */
+/** Identifies an answer's text for matching a chart to its message; the same function is in picture-this. */
 export const answerKey = (text: string): string => {
   const t = text.trim()
   return `${t.length}:${t.slice(0, 60)}`

@@ -10,7 +10,7 @@ One opinion can be wrong; a spread of independent ones shows how contested the c
 4. **Tally and show it** as a chart in the reply:
 
 ````
-```viz
+```ui
 {"type":"bars","title":"The audience says","values":{"A: Redis":3,"B: In-memory":1,"C: CDN":1}}
 ```
 ````
@@ -23,4 +23,4 @@ One opinion can be wrong; a spread of independent ones shows how contested the c
 
 Cost: N subagent runs. Use `phone-a-friend` when one opinion is enough.
 
-Pairs with: `phone-a-friend`, `show-dont-tell` (the chart), `ask-dont-guess`.
+Pairs with: `phone-a-friend`, `show-dont-tell` (the chart, drawn by `picture-this`), `ask-dont-guess`.

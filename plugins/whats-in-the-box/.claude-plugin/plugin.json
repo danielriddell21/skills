@@ -1,6 +1,6 @@
 {
   "name": "whats-in-the-box",
-  "version": "0.2.0",
+  "version": "0.5.0",
   "description": "Mod: context bar above the prompt with per-category legend, ctx % in the status line, toasts as it fills, a Compact chip at the urgent level, and a detail pane (/whats-in-the-box)",
   "types": "./types/index.d.ts",
   "author": {

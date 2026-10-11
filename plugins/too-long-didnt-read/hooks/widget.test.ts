@@ -4,12 +4,12 @@ const long = 'word '.repeat(300)
 const turn = (answer: string) => ({ answer, durationMs: 1, isAborted: false, turnId: 't', reason: 'answer' }) as never
 const reply = (text: string) => ({ value: { isAnswered: true, text, usage: { input_tokens: 1, output_tokens: 1 } } })
 
-// Stand-in for your-call (the dependency): owns the `ready` flag the summaries check.
+// Stand-in for picture-this (the dependency): owns the `ready` flag the summaries check.
 const yourCall = {
-  name: 'your-call',
+  name: 'picture-this',
   register(on: any) {
     on('command.run', { command: 'ready' }, async ($: any) => {
-      await $.state.set({ plugin: 'your-call', key: 'ready' }, true)
+      await $.state.set({ plugin: 'picture-this', key: 'ready' }, true)
       return { text: 'ok' }
     })
   },
@@ -42,7 +42,7 @@ const base = (on: any, replies: string[], toasts: string[] = []) => {
 }
 const ready = ($: any) => $.command.run({ command: 'ready', args: '' } as never)
 
-test('with your-call: a big answer publishes a chart chosen by the model for it to draw', { plugins }, async ($, on) => {
+test('with picture-this: a big answer publishes a chart chosen by the model for it to draw', { plugins }, async ($, on) => {
   base(on, ['{"type":"bars","title":"Options","values":{"Redis":8,"Mem":4}}'])
   await ready($)
   await $.turn.complete(turn(long))
@@ -81,18 +81,18 @@ test('a small chart is a toast; a bigger one is kept for the thread, keyed to it
   expect(await card($)).not.toBeNull()
 })
 
-test('without your-call: says so once, then falls back to the toast', { plugins }, async ($, on) => {
+test('without picture-this: says so once, then falls back to the toast', { plugins }, async ($, on) => {
   const toasts: string[] = []
   base(on, ['Use Redis\nshared and TTLs\nrun the migration', 'Use Redis\nshared and TTLs\nrun the migration'], toasts)
   await $.turn.complete(turn(long))
   await $.turn.complete(turn(long))
-  expect(toasts[0]).toBe('TL;DR charts need the\nyour-call plugin. Showing text.')
+  expect(toasts[0]).toBe('TL;DR charts need the\npicture-this plugin. Showing text.')
   expect(toasts.filter(t => t.includes('need the')).length).toBe(1)
   expect(toasts.filter(t => t.startsWith('TL;DR Use Redis')).length).toBe(2)
   expect(await card($)).toBeNull()
 })
 
-test('widget: false keeps the old toast and never mentions your-call', { plugins, options: { widget: false } }, async ($, on) => {
+test('widget: false keeps the old toast and never mentions picture-this', { plugins, options: { widget: false } }, async ($, on) => {
   const toasts: string[] = []
   base(on, ['Use Redis\nshared and TTLs\nrun the migration'], toasts)
   await ready($)

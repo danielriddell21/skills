@@ -1,7 +1,7 @@
 {
   "name": "too-long-didnt-read",
-  "version": "0.2.0",
-  "description": "Mod: /tldr summarizes the last answer; big answers get a small chart (bars, flow or tree), drawn above the prompt by your-call. Modes off, on, auto, smart",
+  "version": "0.5.0",
+  "description": "Mod: /tldr summarizes the last answer; big answers get a small chart (bars, flow or tree), drawn in the thread under the answer by picture-this. Modes off, on, auto, smart",
   "author": {
     "name": "Daniel Riddell"
   },
@@ -28,13 +28,13 @@
     },
     "widget": {
       "type": "boolean",
-      "title": "Chart above the prompt",
-      "description": "Show auto summaries as a small chart above the prompt (drawn by your-call) instead of a toast",
+      "title": "Chart under the answer",
+      "description": "Show auto summaries as a small chart under the answer (drawn by picture-this) instead of a toast",
       "default": true
     }
   },
   "types": "./types/index.d.ts",
   "dependencies": [
-    "your-call"
+    "picture-this"
   ]
 }

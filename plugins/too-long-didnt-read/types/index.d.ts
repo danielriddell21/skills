@@ -9,7 +9,7 @@ export type Card = { id: number; key: string; viz: Viz }
 declare module 'claude-code' {
   interface PluginState {
     'too-long-didnt-read': { cards: Card[] }
-    // Published by your-call (a dependency); only read here.
-    'your-call': { ready: boolean }
+    // Published by picture-this (a dependency); only read here.
+    'picture-this': { ready: boolean }
   }
 }

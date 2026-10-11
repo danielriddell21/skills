@@ -1,6 +1,6 @@
 {
   "name": "who-wants-the-job",
-  "version": "0.3.0",
+  "version": "0.5.0",
   "description": "Right model for the job: pinned agents, routing, cost report, and a live /crew pane with an animated crew, progress, context and cost",
   "author": {
     "name": "Daniel Riddell"

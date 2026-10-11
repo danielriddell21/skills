@@ -9,7 +9,7 @@ import { answerKey, normalizeViz, parseJsonLoose, toastLines, treeFromSummary } 
 const cards = atom({ plugin: 'too-long-didnt-read', key: 'cards' } as const, [] as Card[])
 const MAX_CARDS = 20
 
-export const NEEDS_YOUR_CALL = 'TL;DR charts need the\nyour-call plugin. Showing text.'
+export const NEEDS_PICTURE = 'TL;DR charts need the\npicture-this plugin. Showing text.'
 
 export type Mode = 'off' | 'on' | 'auto' | 'smart'
 const MODES: Mode[] = ['off', 'on', 'auto', 'smart']
@@ -79,7 +79,7 @@ const summarizeViz = async ($: Engine, text: string) => {
   return plain ? treeFromSummary(plain) : undefined
 }
 
-const isDrawn = async ($: Engine): Promise<boolean> => (await $.state.get({ plugin: 'your-call', key: 'ready' })).value === true
+const isDrawn = async ($: Engine): Promise<boolean> => (await $.state.get({ plugin: 'picture-this', key: 'ready' })).value === true
 
 /** A small summary is a toast; anything bigger is a chart under the answer it summarises. False when no chart could be made. */
 async function showSummary($: Engine, answer: string): Promise<boolean> {
@@ -100,7 +100,7 @@ async function toastSummary($: Engine, answer: string): Promise<void> {
 export const register: Register = (on, options) => {
   let mode: Mode = parseMode(String(options.defaultMode ?? '')) ?? 'smart'
   let last = ''
-  let toldAboutYourCall = false
+  let toldAboutPicture = false
   let tools = 0
 
   on('session.start', async ($, e, next) => {
@@ -157,11 +157,11 @@ export const register: Register = (on, options) => {
     if (wantSummary(mode, e.answer, tools)) {
       let done = false
       if (options.widget !== false) {
-        // The chart is drawn by your-call (a dependency); without it, say so once and fall back to the toast.
+        // The chart is drawn by picture-this (a dependency); without it, say so once and fall back to the toast.
         if (await isDrawn($)) done = await showSummary($, e.answer)
-        else if (!toldAboutYourCall) {
-          toldAboutYourCall = true
-          $.ui.toast(NEEDS_YOUR_CALL, { timeoutMs: 8000 })
+        else if (!toldAboutPicture) {
+          toldAboutPicture = true
+          $.ui.toast(NEEDS_PICTURE, { timeoutMs: 8000 })
         }
       }
       // Widget off, or no chart could be made: the old three-line toast.

@@ -1,0 +1,26 @@
+{
+  "name": "picture-this",
+  "version": "0.5.0",
+  "description": "Mod: Intelligent UI for Claude Code. Claude answers with charts, tables, cards, diagrams, maps and live calculators (```ui blocks or the show tool), drawn natively; controls run locally and a send button puts your values in the prompt",
+  "types": "./types/index.d.ts",
+  "author": {
+    "name": "Daniel Riddell"
+  },
+  "homepage": "https://github.com/danielriddell21/skills",
+  "repository": "https://github.com/danielriddell21/skills",
+  "keywords": [
+    "ui",
+    "charts",
+    "diagrams",
+    "mod"
+  ],
+  "license": "MIT",
+  "userConfig": {
+    "classify": {
+      "type": "boolean",
+      "title": "Pick a picture per prompt",
+      "description": "A cheap classifier suggests a component (table, chart, diagram, calculator, map, choice) per prompt; skipped while matchmaker is on, which hints instead",
+      "default": true
+    }
+  }
+}

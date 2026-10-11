@@ -56,12 +56,23 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 |---|---|---|
 | ask | tool | Choice UI: select, rank, compare, wizard |
 | approve | tool | Tick which planned actions may go ahead |
-| charts | mod | Draws `viz` blocks as in-thread charts |
 | /decisions | command | Lists this session's decisions |
 | ask-dont-guess | skill | List assumptions, confirm before acting |
-| show-dont-tell | skill | Chart or diagram for complex answers |
 | phone-a-friend | skill | Second opinion from a fresh subagent |
 | ask-the-audience | skill | Poll 3-5 subagents and tally |
+
+### `picture-this`
+
+*Intelligent UI: Claude answers with native pictures and controls*
+
+| Part | Type | What it does |
+|---|---|---|
+| ```ui blocks | mod | Charts (bars, line, scatter, pie), tables, cards, stats, trees, flows, graphs, schematic maps, drawn in the thread |
+| show | tool | Same components when the picture is the whole answer |
+| live controls | mod | Calculators with sliders and − / +, choices, sort; run locally, no model call |
+| send | mod | A button that puts your values in the prompt for you to send |
+| picker | mod | Cheap classifier suggests a component per prompt (matchmaker hints instead when on) |
+| show-dont-tell | skill | When and how to show instead of tell |
 
 ### `looks-good-to-me`
 

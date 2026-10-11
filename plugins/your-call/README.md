@@ -14,11 +14,10 @@ Mod + skills for decisions.
 - Options: `autoConfirm`, `rememberPicks`, `idleMinutes`, `giveUpMinutes`, `confidence`, `timeoutPick` (use the recommended option if you never answer).
 - A step may carry `viz`: bars, quadrant, tree or flow, drawn as text charts that mark your pick.
 
-**In-thread charts:** fenced `viz` JSON blocks in Claude's replies are drawn as charts in the thread (text in the terminal, SVG on desktop, VS Code and mobile).
+Charts in Claude's replies moved to `picture-this` (```ui blocks; older ```viz blocks still draw there).
 
 **Skills**
 - `ask-dont-guess`: list assumptions, ask before non-trivial or irreversible actions, show what will run, report what happened.
-- `show-dont-tell`: picks a visual route (in-thread chart, side-panel file, text fallback) for complex answers.
 - `phone-a-friend`: independent second opinion from a fresh subagent; disagreements go to you.
 - `ask-the-audience`: 3-5 independent subagents vote; split votes go to you.
 

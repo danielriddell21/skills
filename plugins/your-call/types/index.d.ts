@@ -50,7 +50,6 @@ export type View = {
 
 export type PlanRow = { id: string; label: string; detail?: string; command?: string; risk: 'low' | 'medium' | 'high'; action: 'read' | 'edit' | 'ship' | 'delete' | 'other'; auto: boolean }
 export type PlanView = { title: string; why?: string; rows: PlanRow[]; ticked: string[]; note: string }
-export type SummaryCard = { id: number; key: string; viz: Viz }
 export type Approval = { at: number; kind: string; detail: string }
 export type GateFlags = {
   pick: boolean
@@ -62,10 +61,8 @@ export type GateState = { mode: string | null; phase: 'off' | 'armed' | 'active'
 
 declare module 'claude-code' {
   interface PluginState {
-    'your-call': { view: View | null; plan: PlanView | null; approvals: Approval[]; ready: boolean }
+    'your-call': { view: View | null; plan: PlanView | null; approvals: Approval[] }
     // Published by looks-good-to-me; only read here.
     'looks-good-to-me': { gate: GateState }
-    // Published by too-long-didnt-read: summary charts for this plugin to draw under the answer they belong to.
-    'too-long-didnt-read': { cards: SummaryCard[] }
   }
 }

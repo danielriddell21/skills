@@ -48,7 +48,7 @@
     {
       "name": "your-call",
       "source": "./plugins/your-call",
-      "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), approve-plan tool, in-thread charts, plus skills ask-dont-guess, show-dont-tell, phone-a-friend and ask-the-audience",
+      "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), approve-plan tool, plus skills ask-dont-guess, phone-a-friend and ask-the-audience",
       "tags": [
         "decisions",
         "ui",
@@ -56,15 +56,25 @@
       ]
     },
     {
+      "name": "picture-this",
+      "source": "./plugins/picture-this",
+      "description": "Mod: Intelligent UI for Claude Code: charts, tables, cards, diagrams, schematic maps and live calculators drawn natively from ```ui blocks or the show tool; controls run locally, a send button puts your values in the prompt. Skill show-dont-tell",
+      "tags": [
+        "ui",
+        "charts",
+        "mod"
+      ]
+    },
+    {
       "name": "too-long-didnt-read",
       "source": "./plugins/too-long-didnt-read",
-      "description": "Mod: /tldr summarizes the last answer; big answers get a small chart (bars, flow or tree) drawn above the prompt by your-call, which it depends on",
+      "description": "Mod: /tldr summarizes the last answer; big answers get a small chart (bars, flow or tree) drawn under the answer by picture-this, which it depends on",
       "tags": [
         "summary",
         "mod"
       ],
       "dependencies": [
-        "your-call"
+        "picture-this"
       ]
     },
     {

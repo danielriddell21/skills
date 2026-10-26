@@ -10,6 +10,7 @@ Single source for routing (the `matchmaker` mod applies this table to each promp
 | Clear spec, local or mechanical edit, tests | `engineer` (sonnet) |
 | Ambiguous, cross-cutting or risky design | `spy` (opus), then `engineer` |
 | Pre-merge check of a non-trivial diff | `sniper` (opus) |
+| Large multi-step build (plan, several workers, review) | `/savvy-flow` if installed, else `spy` then `engineer` |
 | Under ~3 lines, or needs back-and-forth | inline, no agent |
 
 Rules:

@@ -86,7 +86,7 @@ export const register: Register = (on, options) => {
     const names = s.files.slice(0, 8).map(f => f.split('/').slice(-2).join('/'))
     const chip = (
       <Box key={chipKey(RANK.result, 'result')}>
-        <Text key="hdtg" color={color}>{formatSummary(s, options.showCost !== false)} </Text>
+        <Text key="hdtg" color={color}>{formatSummary(s, options.showCost === true)} </Text>
         {s.files.length > 0 && (
           <Button key="details" label={s.isOpen ? 'Less' : 'Details'} onPress={() => update($, summary, x => (x ? { ...x, isOpen: !x.isOpen } : x))} />
         )}

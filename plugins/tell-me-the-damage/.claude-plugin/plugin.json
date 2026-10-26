@@ -1,6 +1,6 @@
 {
   "name": "tell-me-the-damage",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Mod: one-line band after each working turn: files changed, tests, time, cost, with expandable details",
   "types": "./types/index.d.ts",
   "author": {
@@ -24,8 +24,8 @@
     "showCost": {
       "type": "boolean",
       "title": "Show cost",
-      "description": "Include the turn's cost when the session reports one",
-      "default": true
+      "description": "Include the turn's cost when the session reports one (off by default; session-band already shows cost)",
+      "default": false
     }
   }
 }

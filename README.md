@@ -38,7 +38,8 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 | scout, engineer, spy, sniper | agent | Search, build, plan, review (haiku, sonnet, opus, opus) |
 | hey-you-do-it | skill | The routing table: who does what |
 | /whats-the-damage | command | Token usage by model and tool |
-| /crew | mod | Live subagent pane: animated characters, progress, context, cost; a chip opens it |
+
+For a live subagent panel, use [`savvy-progress`](https://github.com/johnnyvizz/claude-kit/tree/main/plugins/savvy-progress) with `autoOpen: any`.
 
 ### `matchmaker`
 
@@ -93,7 +94,7 @@ Claude Code plugins for context hygiene, cheap model use, better decisions and T
 
 ### `tell-me-the-damage`
 
-*mod* — Chip after each turn: files, tests, time, cost
+*mod* — Chip after each turn: files, tests, time (cost is opt-in)
 
 Each plugin has its own README with the details.
 

@@ -1,6 +1,6 @@
 {
   "name": "your-call",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Choice UI tool (select, multi, rank, compare matrix, wizard, regenerate), approve-plan tool, plus skills ask-dont-guess, phone-a-friend and ask-the-audience",
   "types": "./types/index.d.ts",
   "author": {

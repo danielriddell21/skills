@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0
+
+Overlap with [claude-kit](https://github.com/johnnyvizz/claude-kit):
+
+- `who-wants-the-job`: removed the `/crew` mod (the pane, the `♟ crew` chip, the `step` tool and the `autoOpen` option). It was based on `savvy-progress`, which does the same job and more; with `autoOpen: any` it also opens for our agents. The plugin is skills, agents and a command again.
+- `hey-you-do-it`: new row: send large multi-step builds to `/savvy-flow` when it is installed.
+- `tell-me-the-damage`: `showCost` is now off by default (`session-band` already shows cost). Set it to true to bring cost back.
+- Every plugin is now at 0.6.0.
+
 ## 0.5.0
 
 - New `picture-this`: Open Intelligent UI for Claude Code. Claude writes a ```ui block (one JSON component per line, so finished lines draw while the rest streams) or calls the `show` tool; the mod draws it natively in the thread: bars, line, scatter/quadrant, pie, table (sortable), tree, flow, graph, card, stat and a schematic map (SVG on desktop, VS Code and mobile; text in the terminal). Live controls run locally with no model call: `calc` inputs with a slider (terminal and desktop) and − / + (everywhere) recompute formula outputs (a safe evaluator, no eval); `choice` picks; `send` puts the filled prompt in your input box and never submits. A cheap classifier suggests a component per prompt, skipped while `matchmaker` is on (its hint points here instead).

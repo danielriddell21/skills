@@ -1,6 +1,6 @@
 {
   "name": "too-long-didnt-read",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Mod: /tldr summarizes the last answer; big answers get a small chart (bars, flow or tree), drawn in the thread under the answer by picture-this. Modes off, on, auto, smart",
   "author": {
     "name": "Daniel Riddell"

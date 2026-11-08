@@ -108,3 +108,16 @@ test('tour on desktop: the lit step is SVG with the rest dimmed', async ($, on) 
   expect(drawn).toContain('n dm')
   expect(drawn).toContain('a 2-step tour of 3 parts')
 })
+
+test('zoom: ⊕ opens a part, the back button returns; local, no model call', async ($, on) => {
+  base(on)
+  const spec = { type: 'graph', title: 'Shop', nodes: [{ id: 'web', label: 'Web' }, { id: 'core', label: 'Core', inside: { nodes: ['http', 'orders'], edges: [['http', 'orders']] } }], edges: [['web', 'core']] }
+  const text = block(spec)
+  const k = `${text.trim().length}:${text.trim().slice(0, 60)}#0#0`
+  const m = await msg($, text)
+  expect(await m.find({ text: /Core ⊕/ } as never)).toBeTruthy()
+  await m.press({ key: `${k}-in-core` } as never)
+  expect(await m.find({ text: /http +─▶ orders/ } as never)).toBeTruthy()
+  await m.press({ key: `${k}-up` } as never)
+  expect(await m.find({ text: /Core ⊕/ } as never)).toBeTruthy()
+})

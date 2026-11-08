@@ -69,7 +69,7 @@ For a live subagent panel, use [`savvy-progress`](https://github.com/johnnyvizz/
 | Part | Type | What it does |
 |---|---|---|
 | show-dont-tell | skill | Judges complexity, says why, offers picture options (AskUserQuestion with previews) |
-| ```ui blocks | mod | Graphs (hot spots, cycles), guided tours (Back / Next), sequence diagrams, flows, trees, bars, quadrants, drawn in the thread |
+| ```ui blocks | mod | Static, before/after and guided pictures: graphs (hot, heat, diff, zoom), compare panels, tours, storyboards, replayed sequences, swimlanes, timelines, matrices, sankeys, treemaps, radar, quadrants |
 | show | tool | Same components when the picture is the whole answer |
 | side panel | skill | Diagrams too big for the thread go out as Mermaid |
 

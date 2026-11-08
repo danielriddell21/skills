@@ -6,9 +6,17 @@ Mod + skill. Visualise complexity and big ideas: Claude judges whether something
 /plugin install picture-this --marketplace danielriddell21/skills
 ```
 
-- **The gate:** draw only past a threshold: 6+ linked parts, a cycle or hub, 5+ steps with branches or 3+ actors, 4+ states, 3+ options on 3+ criteria, or a change across 5+ dependent files. Below it, text. Asking for a picture skips the offer.
-- **Guided tours:** `tour` walks you through a graph a stage at a time: Back / Next light up that step's parts, dim the rest and show a caption. It runs locally, with no model call, on every surface (SVG on desktop, VS Code and mobile; `●` marks in the terminal). A big idea that needs more than a lit graph goes to the side panel as a self-contained step-through page.
-- **Components:** `graph` (parts and links; `hot` marks where the complexity lives, cycles are found and drawn dashed), `sequence` (who calls whom, in order), `flow`, `tree`, `bars`, `scatter`/`quadrant`. Written as a fenced ```ui block, one JSON per line (finished lines draw while the rest streams), or the `mcp__picture-this__show` tool.
+- **The gate:** draw only past a threshold: 6+ linked parts, a cycle or hub, 5+ steps with branches or 3+ actors, 4+ states, 3+ options on 3+ criteria, a change across 5+ dependent files, or an idea that needs stages. Below it, text. Asking for a picture skips the offer.
+- **Three modes, for one idea or several options:**
+
+  | Mode | One idea | Options |
+  |---|---|---|
+  | Static: the shape | `graph` (`hot`, `heat`), `sequence`, `flow`, `swimlane`, `tree`, `treemap`, `matrix`, `sankey` | `radar`, `scatter`/`quadrant`, markdown table |
+  | Before / after: what changes | `compare` (Today / After), `graph` with `change` marks | `compare` (Today / A / B) |
+  | Guided: step by step | `tour` (Back / Next), `storyboard`, animated `sequence`, zoomable `graph` (`inside`), `timeline` | a `tour` across the options |
+
+- **Local controls, no model call:** tour Back / Next, zoom ⊕ and back, sequence replay (↻, desktop and mobile).
+- **Written as** a fenced ```ui block, one JSON per line (finished lines draw while the rest streams), or the `mcp__picture-this__show` tool. Every component has a terminal form (text, shade blocks, `+ − ~` diff marks, `●` focus, `⊕` zoom).
 - **Too big for the thread** (over 24 nodes or 30 messages): a Mermaid file in the side panel, which the app draws itself with pan and zoom.
 - **Hooks for other plugins:** `too-long-didnt-read` publishes summary charts in its `cards` state; picture-this draws each under its answer and sets `picture-this.ready`.
 
@@ -35,4 +43,4 @@ Limits that shaped this version:
 
 ## What changed in 0.7.0
 
-Removed: the per-prompt classifier (a model call on every prompt; the skill's gate replaces it, and its `classify` option), `table`, `card`, `stat` (now markdown), `choice`, `send` (now AskUserQuestion / your-call), `calc` and its slider, `line`, `pie`, and the schematic `map` (now the side panel, for real maps and data charts). Added: `tour` (guided walkthroughs), `sequence`, `hot` and `note` on graph nodes, cycle detection, a barycentre layout that crosses fewer edges, boxes that grow and wrap to fit labels instead of cutting them at 14 characters, theme-aware colours, interactive SVG (hover tooltips on desktop and mobile), and an `alt` that says what each picture holds. Fixed: a labelled edge set `font-size` twice, so the whole graph failed to load on desktop.
+Removed: the per-prompt classifier (a model call on every prompt; the skill's gate replaces it, and its `classify` option), `table`, `card`, `stat` (now markdown), `choice`, `send` (now AskUserQuestion / your-call), `calc` and its slider, `line`, `pie`, and the schematic `map` (now the side panel, for real maps and data charts). Added: before/after `compare` and diff marks, `heat`, zoomable `inside` parts, `tour` and `storyboard`, animated `sequence` replay, `swimlane`, `timeline`, `matrix`, `sankey`, `radar`, `treemap`, edges that route under the columns they skip, `hot` and `note` on graph nodes, cycle detection, a barycentre layout that crosses fewer edges, boxes that grow and wrap to fit labels instead of cutting them at 14 characters, theme-aware colours, interactive SVG (hover tooltips on desktop and mobile), and an `alt` that says what each picture holds. Fixed: a labelled edge set `font-size` twice, so the whole graph failed to load on desktop.

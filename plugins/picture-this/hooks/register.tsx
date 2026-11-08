@@ -4,11 +4,13 @@ import type { Hook, Register } from 'claude-code'
 import type { Component } from '../types'
 
 import { answerKey, hasBlock, normalize, splitBlocks } from './spec'
+import { zoomTo } from './graphs'
 import { svgFor } from './svg'
 import { summaryOf, textLines } from './text'
 
 const shown = atom({ plugin: 'picture-this', key: 'shown' } as const, {} as Record<string, Component[]>)
 const steps = atom({ plugin: 'picture-this', key: 'steps' } as const, {} as Record<string, number>)
+const paths = atom({ plugin: 'picture-this', key: 'paths' } as const, {} as Record<string, string>)
 const ready = atom({ plugin: 'picture-this', key: 'ready' } as const, false)
 
 export const TOOL = 'mcp__picture-this__show'
@@ -17,14 +19,17 @@ const MAX_SHOWN = 50
 type Engine = Parameters<Hook<'session.start'>>[0]
 type RenderEvent = Parameters<Hook<'ui.render'>>[1]
 
-// What the model is told every session. Kept short: the show-dont-tell skill holds the long form.
-export const RULE = `picture-this draws diagrams natively in the thread, for things too complex to hold in prose. Before drawing, judge complexity: about 6+ parts with links between them, a cycle or fan-out, 5+ steps with branches or several actors talking, or 3+ options across 3+ criteria. Below that, answer in text. Above it, and unless the user already asked for a picture, say in one line what makes it complex and offer 2-3 picture options (AskUserQuestion when available, each with a small text preview, plus "text is fine"); draw only the one they pick.
-Draw with a fenced \`\`\`ui block, ONE JSON object per line, inside a prose answer that stands without it (or the \`${TOOL}\` tool with {title?, components:[...]} when the picture is the whole answer):
-{"type":"graph","title":"…","nodes":[{"id":"api","label":"API","hot":true,"note":"3 callers"},{"id":"db","label":"DB"}],"edges":[["api","db","reads"]]} (parts and how they connect; hot marks where the complexity lives; ≤24 nodes)
-{"type":"sequence","actors":["Client","API","DB"],"steps":[["Client","API","POST /login"],["API","DB","lookup"],["API","Client","200"]]} (who calls whom, in order)
-{"type":"tour","title":"…","nodes":[…],"edges":[…],"steps":[{"focus":["api"],"text":"Every request enters here"},{"focus":["api","db"],"text":"…"}]} (a guided walkthrough of a graph or a big idea: Back/Next light up each step's parts; 2-12 steps)
-{"type":"flow","lanes":[["plan","build","ship"]]} · {"type":"tree","nodes":[{"label":"x","children":[{"label":"y"}]}]} · {"type":"bars","values":{"A":3,"B":5},"unit":"ms"} · {"type":"scatter","x":"effort","y":"impact","points":[{"label":"A","x":2,"y":8}],"quadrant":true}
-Use the host's own forms for the rest: a markdown table for an options-by-criteria matrix, AskUserQuestion for a choice. Short labels, the names used in the text; say when numbers are estimates.`
+// What the model is told every session. Kept short: the show-dont-tell skill holds the long form and examples.
+export const RULE = `picture-this draws pictures natively in the thread for things too complex, or ideas too big, to hold in prose. Judge first: about 6+ linked parts, a cycle or hub, 5+ steps with branches or 3+ actors, 4+ states, 3+ options on 3+ criteria, a change across 5+ dependent files, or an idea that needs stages. Below that, text. Above it, unless the user asked for a picture: say in one line what makes it complex, offer 2-3 pictures (AskUserQuestion with a small text preview each, plus "text is fine"), draw only the pick.
+Three modes, for one idea or several options: static (the shape), before/after (what changes), guided (a tour, step by step).
+Draw with a fenced \`\`\`ui block, ONE JSON object per line, in a prose answer that stands without it (or the \`${TOOL}\` tool with {title?, components}):
+graph {nodes:[{id,label,hot?,note?,heat?:0-1,change?:"added"|"removed"|"changed",inside?:{nodes,edges}}], edges:[[from,to,label?]], heatLabel?} (structure; hot = where complexity lives; heat shades by churn/bugs/load; inside = zoom in; ≤24 nodes)
+compare {panels:[{label:"Today",nodes,edges},{label:"Option A",nodes,edges}]} (before/after or options; first panel is the baseline; same ids across panels)
+tour / storyboard {nodes, edges, steps:[{focus:[ids], text}]} (guided: Back/Next, or every step at once; 2-12 steps)
+sequence {steps:[[from,to,label]], animate?} · flow {lanes:[[a,b,c]]} · swimlane {steps:[[lane,label]]} · timeline {items:[{label,start,end?,hot?}]} (numbers, "HH:MM" or dates)
+tree {nodes:[{label,children}]} · treemap {values:{"src/a.ts":120}, hot?:[paths]} · matrix {rows, cols, values:[[n]]} · sankey {links:[[from,to,value]]}
+bars {values:{A:3}} · scatter {x, y, points:[{label,x,y}], quadrant?} · radar {axes:[…3-8], series:{A:[n…]}, max?}
+Plain markdown tables for exact values; AskUserQuestion for choices. Short labels, the names used in the text; say when it is your reading or an estimate.`
 
 /** React keys from labels that stay unique when a label repeats. */
 export const keysFor = (labels: string[]): string[] => {
@@ -38,7 +43,7 @@ export const keysFor = (labels: string[]): string[] => {
 
 const trim = <T,>(m: Record<string, T>, n: number): Record<string, T> => Object.fromEntries(Object.entries(m).slice(-n))
 
-type Ctx = { el: Record<string, any>; terminal: boolean; steps: Record<string, number> }
+type Ctx = { el: Record<string, any>; terminal: boolean; steps: Record<string, number>; paths: Record<string, string> }
 
 const titleOf = (c: Component) => c.title
 
@@ -71,17 +76,43 @@ function drawTour($: Engine, ctx: Ctx, c: Extract<Component, { type: 'tour' }>, 
   )
 }
 
-function drawPiece($: Engine, ctx: Ctx, c: Component, k: string) {
-  return c.type === 'tour' ? drawTour($, ctx, c, k) : drawPicture(ctx, c, k)
+async function openPath($: Engine, k: string, to: string): Promise<void> {
+  await update($, paths, m => trim({ ...Object.fromEntries(Object.entries(m).filter(([kk]) => kk !== k)), [k]: to }, MAX_SHOWN * 4))
 }
 
-function drawPicture(ctx: Ctx, c: Component, k: string, step = -1) {
+/** A graph with parts you can open: the level shown, a trail back up, and a button per part with an inside. */
+function drawZoom($: Engine, ctx: Ctx, c: Extract<Component, { type: 'graph' }>, k: string) {
+  const { Box, Button } = ctx.el
+  const z = zoomTo(c, ctx.paths[k] ?? '')
+  const up = z.path.split('/').filter(Boolean)
+  const openable = z.nodes.filter(n => n.inside)
+  return (
+    <Box key={k} flexDirection="column">
+      {drawPicture(ctx, c, `${k}-pic`, -1, z.path)}
+      <Box key={`${k}-zoom`} flexWrap="wrap" gap={1}>
+        {up.length > 0 && <Button key={`${k}-up`} label={`◀ ${z.trail.length > 1 ? z.trail.at(-2) : (c.title ?? 'Top')}`} plain onPress={() => openPath($, k, up.slice(0, -1).join('/'))} />}
+        {openable.map(n => (
+          <Button key={`${k}-in-${n.id}`} label={`⊕ ${n.label}`} onPress={() => openPath($, k, [...up, n.id].join('/'))} />
+        ))}
+      </Box>
+    </Box>
+  )
+}
+
+const zoomable = (c: Component): c is Extract<Component, { type: 'graph' }> => c.type === 'graph' && c.nodes.some(n => n.inside)
+
+function drawPiece($: Engine, ctx: Ctx, c: Component, k: string) {
+  if (c.type === 'tour') return drawTour($, ctx, c, k)
+  return zoomable(c) ? drawZoom($, ctx, c, k) : drawPicture(ctx, c, k)
+}
+
+function drawPicture(ctx: Ctx, c: Component, k: string, step = -1, path = '') {
   const { Box, Text, Svg } = ctx.el
   const alt = `${c.title ?? c.type}: ${summaryOf(c)}`
-  // Interactive: hover outlines and <title> tooltips work on desktop and mobile; VS Code draws it as an image.
-  const svg = !ctx.terminal && Svg ? svgFor(c, step) : undefined
+  // Interactive: hover outlines, <title> tooltips and SMIL replay work on desktop and mobile; VS Code draws an image.
+  const svg = !ctx.terminal && Svg ? svgFor(c, step, path) : undefined
   if (svg) return <Svg key={k} source={svg} alt={alt} isInteractive />
-  const lines = textLines(c, step)
+  const lines = textLines(c, step, path)
   return (
     <Box key={k} flexDirection="column">
       {titleOf(c) ? (
@@ -103,7 +134,12 @@ const skippedText = (n: number) => (n === 1 ? '(1 piece could not be drawn)' : `
 /** One block of components; `scope` keeps each block's keys (and tour steps) apart. */
 async function drawBlock($: Engine, e: RenderEvent, el: Record<string, any>, scope: string, components: Component[], pending: boolean, skipped: number) {
   const { Box, Text } = el
-  const ctx: Ctx = { el, terminal: e.surface === 'terminal', steps: components.some(c => c.type === 'tour') ? await read($, steps) : {} }
+  const ctx: Ctx = {
+    el,
+    terminal: e.surface === 'terminal',
+    steps: components.some(c => c.type === 'tour') ? await read($, steps) : {},
+    paths: components.some(zoomable) ? await read($, paths) : {},
+  }
   return (
     <Box key={`blk-${scope}`} flexDirection="column" gap={1}>
       {components.map((c, i) => drawPiece($, ctx, c, `${scope}#${i}`))}
@@ -162,7 +198,7 @@ export const register: Register = on => {
     await $.tool.register({
       name: 'show',
       description:
-        'Draw a diagram natively in the thread: graph, tour (guided walkthrough), sequence, flow, tree, bars or scatter. Same components as a ```ui block; ' +
+        'Draw a picture natively in the thread: graph, compare (before/after, options), tour, storyboard, sequence, flow, swimlane, timeline, tree, treemap, matrix, sankey, bars, scatter, radar. Same components as a ```ui block; ' +
         'prefer the block inside a prose answer, the tool when the picture is the whole answer. Only after the user agreed to a picture, or asked for one.',
       inputSchema: {
         type: 'object',

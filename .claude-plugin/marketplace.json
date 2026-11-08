@@ -58,7 +58,7 @@
     {
       "name": "picture-this",
       "source": "./plugins/picture-this",
-      "description": "Mod: visualise complexity. Judges whether something is complex enough for a picture, offers options, draws the one you pick natively: graphs, guided tours, sequence diagrams, flows, trees, bars, quadrants; big ones go to the side panel as Mermaid. Skill show-dont-tell",
+      "description": "Mod: visualise complexity. Judges whether something is complex enough for a picture, offers options, draws the one you pick natively, static, before/after or guided: graphs, compare panels, tours, storyboards, sequences, swimlanes, timelines, matrices, sankeys, treemaps, radar; big ones go to the side panel as Mermaid. Skill show-dont-tell",
       "tags": [
         "ui",
         "diagrams",

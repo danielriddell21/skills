@@ -60,6 +60,13 @@ declare module 'claude-code' {
       theme: string
       ready: boolean
     }
+    // Published by the `skins` mod (hellosverre/claude-skins), only read here: which skin is on, whether it draws
+    // replies (`tables`), the person's own skins, and light or dark. Pictures take the skin's colours while it is on.
+    skins: {
+      prefs: { skin: string; tables?: string }
+      custom: Record<string, { base: string; palette: Record<string, string> }>
+      isLight: boolean
+    }
     // Published by too-long-didnt-read: summary charts drawn under the answer they belong to.
     'too-long-didnt-read': { cards: SummaryCard[] }
   }

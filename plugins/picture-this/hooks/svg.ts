@@ -6,7 +6,7 @@ import { compare, flowGraph, graph, storyboard, tourStep, zoomTo } from './graph
 import { MAX_SVG, usePalette } from './paint'
 import type { Palette } from './paint'
 
-export { paletteFor, wrap } from './paint'
+export { fromSkin, paletteFor, wrap } from './paint'
 export type { Palette } from './paint'
 
 /**

@@ -38,6 +38,24 @@ export const paletteFor = (theme: string | undefined): Palette | undefined => {
   return undefined
 }
 
+/** A palette from a skin's slots (the `skins` mod): its text, muted, surface and status colours; its edit colour as the accent. */
+export const fromSkin = (slot: (name: string) => string | undefined, base: Palette): Palette => {
+  const pick = (name: string, fallback: string) => slot(name) ?? fallback
+  const accent = pick('write', base.claude)
+  return {
+    text: pick('fg', base.text),
+    mute: pick('muted', base.mute),
+    line: pick('muted', base.line),
+    faint: pick('surface', base.faint),
+    node: pick('zebra', base.node),
+    claude: accent,
+    add: pick('ok', base.add),
+    del: pick('err', base.del),
+    chg: pick('warn', base.chg),
+    series: [accent, pick('read', base.series[1]), pick('search', base.series[2]), pick('mcp', base.series[3])],
+  }
+}
+
 const vars = (p: Palette) =>
   `--tx:${p.text};--mu:${p.mute};--ln:${p.line};--fa:${p.faint};--nd:${p.node};--cl:${p.claude};--add:${p.add};--del:${p.del};--chg:${p.chg};` +
   p.series.map((c, i) => `--s${i}:${c}`).join(';')

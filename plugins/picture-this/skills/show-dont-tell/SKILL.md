@@ -64,7 +64,7 @@ Use the first route that works:
    - `tree` {nodes: [{label, children}]} · `treemap` {values: {"src/a.ts": 120}, hot?: [paths], unit?} · `matrix` {rows, cols, values: [[n]]} · `sankey` {links: [[from, to, value]], unit?}
    - `bars` {values} · `scatter` {x, y, points: [{label, x, y}], quadrant?} · `radar` {axes: [3–8], series: {name: [n…]}, max?}
 
-   The `mcp__picture-this__show` tool takes the same components as `{title, components}` when the picture is the whole answer. If the JSON shows as a code block, the mod is not loaded: say so once and use route 2 or 3.
+   The `mcp__picture-this__show` tool takes the same components as `{title, components}` when the picture is the whole answer, and always while the `skins` mod draws replies (its rule says so): skins could draw a ```ui block as a code card. If the JSON shows as a code block, the mod is not loaded: say so once and use route 2 or 3.
 2. **Side panel** (`SendUserFile` exists: cloud and desktop apps), for pictures too big for the thread or when the mod is missing. Write a Mermaid file (`.mmd`: `flowchart LR`, `sequenceDiagram`, `stateDiagram-v2`, `classDiagram`, `erDiagram`) to your scratchpad and send it with `display: "render"` and a one-line caption; the app draws Mermaid itself, with pan and zoom. Use `.html` only for something Mermaid cannot do: a guided demo of a big idea that needs more than a lit graph (stages that add parts, animation, a toy you can poke), as one self-contained page with Back / Next and a step caption, light and dark safe. Load `dataviz` first for data charts.
 3. **Text**: a markdown table, or a text diagram (`A ──▶ B`, `├─ x`, `1. A → B: msg`).
 

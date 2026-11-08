@@ -5,7 +5,8 @@ import type { Component } from '../types'
 
 import { answerKey, hasBlock, normalize, splitBlocks } from './spec'
 import { legendOf, zoomTo } from './graphs'
-import { paletteFor, svgFor } from './svg'
+import { SKIN_PALETTES, SKIN_SLOTS } from './skin-palettes'
+import { fromSkin, paletteFor, svgFor } from './svg'
 import type { Palette } from './svg'
 import { notesOf, summaryOf, textLines } from './text'
 
@@ -56,6 +57,37 @@ async function themeName($: Engine): Promise<string> {
     .catch(() => undefined)
   return typeof row?.value === 'string' ? row.value : ''
 }
+
+type SkinsState = { skin: string; tables?: string; custom: Record<string, { base: string; palette: Record<string, string> }>; isLight: boolean }
+
+/** The `skins` mod's state, or undefined when it is not installed or is off. */
+async function skinsOn($: Engine): Promise<SkinsState | undefined> {
+  // Read as values: skins may be absent, or a version that stores something else under these keys.
+  const prefs = (await $.state.get({ plugin: 'skins', key: 'prefs' }).catch(() => undefined))?.value
+  if (!prefs || typeof prefs.skin !== 'string' || prefs.skin === 'off') return undefined
+  const custom = (await $.state.get({ plugin: 'skins', key: 'custom' }).catch(() => undefined))?.value
+  const isLight = (await $.state.get({ plugin: 'skins', key: 'isLight' }).catch(() => undefined))?.value
+  return { skin: prefs.skin, tables: prefs.tables, custom: custom ?? {}, isLight: isLight === true }
+}
+
+/** The active skin's colours for a picture: its own slots (a custom skin over its base), light or dark as skins reads it. */
+export const skinPalette = (s: SkinsState): Palette | undefined => {
+  const custom = s.custom[s.skin]
+  const builtIn = SKIN_PALETTES[custom?.base ?? s.skin]
+  const base = paletteFor(s.isLight ? 'light' : 'dark') as Palette
+  const slots = s.isLight ? builtIn?.light : builtIn?.dark
+  if (!slots && !custom) return builtIn ? base : undefined
+  const at = (name: string) => custom?.palette[name] ?? slots?.[SKIN_SLOTS.indexOf(name as never)]
+  return fromSkin(at, base)
+}
+
+/** Whether skins draws replies itself: then a ```ui fence could reach it before picture-this, as a code card. */
+const skinsDrawsReplies = (s: SkinsState | undefined) => s !== undefined && s.tables !== 'off'
+
+export const SKINS_NOTE =
+  'The skins mod is drawing replies in this session, and it may draw a ```ui fence as a code card before picture-this sees it. ' +
+  'So while skins is on, draw every picture with the `' +
+  'mcp__picture-this__show` tool, {title, components}, never a ```ui block.'
 
 /** A terminal line's colour, by theme key: the same marks mean the same thing as in Claude's own diffs and lists. */
 export const lineColor = (line: string): string | undefined => {
@@ -189,6 +221,12 @@ function drawPicture(ctx: Ctx, c: Component, k: string, step = -1, path = '') {
 
 const skippedText = (n: number) => (n === 1 ? '1 picture skipped (invalid JSON or an unknown type)' : `${n} pictures skipped (invalid JSON or an unknown type)`)
 
+/** The skin's colours while the skins mod is on, else the Claude theme's, else none (the OS decides). */
+async function pictureColours($: Engine): Promise<Palette | undefined> {
+  const skins = await skinsOn($)
+  return (skins && skinPalette(skins)) ?? paletteFor(await read($, theme))
+}
+
 /** One block of components; `scope` keeps each block's keys (and tour steps) apart. */
 async function drawBlock($: Engine, e: RenderEvent, el: Record<string, any>, scope: string, components: Component[], pending: boolean, skipped: number) {
   const { Box, Text } = el
@@ -197,7 +235,7 @@ async function drawBlock($: Engine, e: RenderEvent, el: Record<string, any>, sco
     terminal: e.surface === 'terminal',
     steps: components.some(c => c.type === 'tour') ? await read($, steps) : {},
     paths: components.some(zoomable) ? await read($, paths) : {},
-    palette: e.surface === 'terminal' ? undefined : paletteFor(await read($, theme)),
+    palette: e.surface === 'terminal' ? undefined : await pictureColours($),
   }
   return (
     <Box key={`blk-${scope}`} flexDirection="column" gap={1}>
@@ -290,7 +328,8 @@ export const register: Register = on => {
 
   on('prompt.compose', async ($, e, next) => {
     const r = await next(e)
-    return { sections: [...r.sections, { id: 'picture-this:rule', text: RULE, scope: 'session' as const }] }
+    const note = skinsDrawsReplies(await skinsOn($)) ? `\n${SKINS_NOTE}` : ''
+    return { sections: [...r.sections, { id: 'picture-this:rule', text: RULE + note, scope: 'session' as const }] }
   })
 
   on('tool.call', { tool: TOOL }, async ($, e) => {

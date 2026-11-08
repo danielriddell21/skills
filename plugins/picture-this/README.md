@@ -49,6 +49,14 @@ Limits that shaped this version:
 - Terminal colours are theme keys: `claude` for ●, `success` / `error` / `warning` for `+ − ~`.
 - Buttons are plain host buttons; captions are host markdown; the offer is AskUserQuestion.
 
+## With the `skins` mod
+
+[skins](https://github.com/hellosverre/claude-skins) repaints Claude Code in one of sixteen skins (or your own). picture-this follows it:
+
+- **Colours:** while a skin is on, pictures take its colours: its text, muted and surface colours, its ok / err / warn for diffs, its edit colour as the accent. Light or dark is skins' own reading, and a custom skin is its base with your slots over it. With the skin off (or skins not installed) pictures go back to your Claude theme. The built-in skins' colours are copied from skins 0.5.16 (MIT); a skin added later draws in your Claude theme until this table is updated.
+- **Replies:** both mods redraw replies, and Claude Code may run either first. When picture-this runs first, it hands every prose segment back down, so skins draws your prose. When skins runs first, it would draw a ```ui block as a code card. So while skins draws replies, Claude is told to draw pictures with the `show` tool instead, which skins leaves to picture-this.
+- **Tool rows:** skins draws the `show` tool's row as it draws any MCP tool. picture-this draws the result.
+
 ## What changed in 0.7.0
 
 Removed: the per-prompt classifier (a model call on every prompt; the skill's gate replaces it, and its `classify` option), `table`, `card`, `stat` (now markdown), `choice`, `send` (now AskUserQuestion / your-call), `calc` and its slider, `line`, `pie`, and the schematic `map` (now the side panel, for real maps and data charts). Added: before/after `compare` and diff marks, `heat`, zoomable `inside` parts, `tour` and `storyboard`, animated `sequence` replay, `swimlane`, `timeline`, `matrix`, `sankey`, `radar`, `treemap`, edges that route under the columns they skip, `hot` and `note` on graph nodes, cycle detection, a barycentre layout that crosses fewer edges, boxes that grow and wrap to fit labels instead of cutting them at 14 characters, theme-aware colours, interactive SVG (hover tooltips on desktop and mobile), and an `alt` that says what each picture holds. Fixed: a labelled edge set `font-size` twice, so the whole graph failed to load on desktop.

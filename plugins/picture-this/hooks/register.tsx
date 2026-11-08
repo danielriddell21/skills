@@ -54,20 +54,26 @@ async function goTo($: Engine, k: string, to: number): Promise<void> {
   await update($, steps, m => trim({ ...Object.fromEntries(Object.entries(m).filter(([kk]) => kk !== k)), [k]: to }, MAX_SHOWN * 4))
 }
 
+// Plain host buttons, no accent fill: the terminal draws the label alone, the desktop its own native button.
+const nextLabel = (i: number, n: number) => {
+  if (i < 0) return 'Start →'
+  return i < n - 1 ? 'Next →' : 'Done ↺'
+}
+
 /** A guided tour: the diagram with this step's parts lit, its caption, and Back / Next. Runs locally, no model call. */
 function drawTour($: Engine, ctx: Ctx, c: Extract<Component, { type: 'tour' }>, k: string) {
   const { Box, Text, Button, Markdown } = ctx.el
   const i = ctx.steps[k] ?? -1
   const n = c.steps.length
   const step = c.steps[i]
-  const caption = step ? `**${i + 1}/${n}** · ${step.text}` : `**Tour** · ${n} steps. Press Next to start.`
+  const caption = step ? `**${i + 1}/${n}** · ${step.text}` : `**Tour** · ${n} steps`
   return (
     <Box key={k} flexDirection="column">
       {drawPicture(ctx, c, `${k}-pic`, i)}
       <Markdown key={`${k}-cap`} text={caption} />
       <Box key={`${k}-nav`} flexWrap="wrap" gap={1}>
-        <Button key={`${k}-back`} label="◀ Back" plain dimColor={i < 0} onPress={() => goTo($, k, stepBy(i, -1, n))} />
-        <Button key={`${k}-next`} label={i < n - 1 ? 'Next ▶' : 'Overview ↺'} variant="primary" onPress={() => goTo($, k, i < n - 1 ? i + 1 : -1)} />
+        {i >= 0 && <Button key={`${k}-back`} label="← Back" plain dimColor onPress={() => goTo($, k, stepBy(i, -1, n))} />}
+        <Button key={`${k}-next`} label={nextLabel(i, n)} plain onPress={() => goTo($, k, i < n - 1 ? i + 1 : -1)} />
         <Text key={`${k}-dots`} dimColor>
           {c.steps.map((_, j) => (j === i ? '●' : '○')).join('')}
         </Text>
@@ -90,9 +96,9 @@ function drawZoom($: Engine, ctx: Ctx, c: Extract<Component, { type: 'graph' }>,
     <Box key={k} flexDirection="column">
       {drawPicture(ctx, c, `${k}-pic`, -1, z.path)}
       <Box key={`${k}-zoom`} flexWrap="wrap" gap={1}>
-        {up.length > 0 && <Button key={`${k}-up`} label={`◀ ${z.trail.length > 1 ? z.trail.at(-2) : (c.title ?? 'Top')}`} plain onPress={() => openPath($, k, up.slice(0, -1).join('/'))} />}
+        {up.length > 0 && <Button key={`${k}-up`} label={`↑ ${z.trail.length > 1 ? z.trail.at(-2) : (c.title ?? 'Top')}`} plain dimColor onPress={() => openPath($, k, up.slice(0, -1).join('/'))} />}
         {openable.map(n => (
-          <Button key={`${k}-in-${n.id}`} label={`⊕ ${n.label}`} onPress={() => openPath($, k, [...up, n.id].join('/'))} />
+          <Button key={`${k}-in-${n.id}`} label={`⊕ ${n.label}`} plain onPress={() => openPath($, k, [...up, n.id].join('/'))} />
         ))}
       </Box>
     </Box>

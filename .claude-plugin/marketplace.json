@@ -58,10 +58,10 @@
     {
       "name": "picture-this",
       "source": "./plugins/picture-this",
-      "description": "Mod: Intelligent UI for Claude Code: charts, tables, cards, diagrams, schematic maps and live calculators drawn natively from ```ui blocks or the show tool; controls run locally, a send button puts your values in the prompt. Skill show-dont-tell",
+      "description": "Mod: visualise complexity. Judges whether something is complex enough for a picture, offers options, draws the one you pick natively: graphs, guided tours, sequence diagrams, flows, trees, bars, quadrants; big ones go to the side panel as Mermaid. Skill show-dont-tell",
       "tags": [
         "ui",
-        "charts",
+        "diagrams",
         "mod"
       ]
     },

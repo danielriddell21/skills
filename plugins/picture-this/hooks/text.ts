@@ -1,15 +1,13 @@
-// Every drawable component as plain text lines: the terminal's form, and the fallback anywhere Svg is missing.
-import type { Component, Sort, TreeNode } from '../types'
+// Every component as plain text lines: the terminal's form (it has no Svg), and the fallback anywhere Svg is missing.
+import type { Component, TreeNode } from '../types'
 
-import { fmtNum } from './formula'
+import { columns, cyclic, fmtNum } from './layout'
 
 const BAR = 12
 const W = 25
 const H = 9
-const SPARK = '▁▂▃▄▅▆▇█'
 
 const pad = (s: string, n: number) => s + ' '.repeat(Math.max(0, n - s.length))
-const padL = (s: string, n: number) => ' '.repeat(Math.max(0, n - s.length)) + s
 const unitOf = (u?: string) => (u ? ` ${u}` : '')
 
 const treeLines = (nodes: TreeNode[], prefix = ''): string[] =>
@@ -18,42 +16,12 @@ const treeLines = (nodes: TreeNode[], prefix = ''): string[] =>
     return [`${prefix}${last ? '└─ ' : '├─ '}${n.label}`, ...treeLines(n.children ?? [], prefix + (last ? '   ' : '│  '))]
   })
 
-const barLines = (values: Record<string, number>, max: number, suffix: (n: number) => string): string[] => {
+const barLines = (values: Record<string, number>, max: number, unit?: string): string[] => {
   const w = Math.max(...Object.keys(values).map(k => k.length))
   return Object.entries(values).map(([k, n]) => {
     const f = Math.max(0, Math.min(BAR, Math.round((n / (max || 1)) * BAR)))
-    return `${pad(k, w)} ${'█'.repeat(f)}${'░'.repeat(BAR - f)} ${suffix(n)}`
+    return `${pad(k, w)} ${'█'.repeat(f)}${'░'.repeat(BAR - f)} ${fmtNum(n)}${unitOf(unit)}`
   })
-}
-
-export const spark = (ys: number[]): string => {
-  const lo = Math.min(...ys)
-  const hi = Math.max(...ys)
-  return ys.map(y => SPARK[hi === lo ? 3 : Math.round(((y - lo) / (hi - lo)) * (SPARK.length - 1))]).join('')
-}
-
-/** Rows in display order for a sort; numbers compare as numbers. */
-export const sortedRows = (rows: (string | number)[][], sort?: Sort): (string | number)[][] => {
-  if (!sort) return rows
-  const cmp = (a: string | number, b: string | number) => (typeof a === 'number' && typeof b === 'number' ? a - b : String(a).localeCompare(String(b)))
-  const out = [...rows].sort((a, b) => cmp(a[sort.col] ?? '', b[sort.col] ?? ''))
-  return sort.desc ? out.reverse() : out
-}
-
-const headerText = (c: string, i: number, sort?: Sort): string => {
-  if (sort?.col !== i) return c
-  return sort.desc ? c + ' ↓' : c + ' ↑'
-}
-
-const cell = (c: string | number) => (typeof c === 'number' ? fmtNum(c) : c)
-
-export const tableLines = (columns: string[], rows: (string | number)[][], sort?: Sort): string[] => {
-  const shown = sortedRows(rows, sort)
-  const widths = columns.map((c, i) => Math.max(c.length + 2, ...shown.map(r => cell(r[i] ?? '').length)))
-  const head = columns.map((c, i) => pad(headerText(c, i, sort), widths[i] ?? 0)).join(' │ ')
-  const rule = widths.map(w => '─'.repeat(w)).join('─┼─')
-  const body = shown.map(r => r.map((c, i) => (typeof c === 'number' ? padL(cell(c), widths[i] ?? 0) : pad(c, widths[i] ?? 0))).join(' │ '))
-  return [head, rule, ...body]
 }
 
 const scatterLines = (c: Extract<Component, { type: 'scatter' }>): string[] => {
@@ -80,72 +48,72 @@ const scatterLines = (c: Extract<Component, { type: 'scatter' }>): string[] => {
   ]
 }
 
-const graphLines = (c: Extract<Component, { type: 'graph' }>): string[] => {
-  const label = new Map(c.nodes.map(n => [n.id, n.label]))
-  const arrow = (l?: string) => (l ? '── ' + l + ' ▶' : '──▶')
-  const edges = c.edges.map(e => `${label.get(e.from)} ${arrow(e.label)} ${label.get(e.to)}`)
-  const linked = new Set(c.edges.flatMap(e => [e.from, e.to]))
-  return [...edges, ...c.nodes.filter(n => !linked.has(n.id)).map(n => `${n.label} (alone)`)]
+/** Each node with what it points at, in layout order: `API ─▶ Auth, DB (reads)`; ● hot (or in focus), ↺ on a cycle. */
+const graphLines = (c: Extract<Component, { type: 'graph' }>, focus?: Set<string>): string[] => {
+  const ids = c.nodes.map(n => n.id)
+  const byId = new Map(c.nodes.map(n => [n.id, n]))
+  const loop = cyclic(ids, c.edges)
+  const name = (id: string) => {
+    const n = byId.get(id)
+    const on = focus ? focus.has(id) : n?.hot
+    return `${on ? '● ' : ''}${n?.label ?? id}${loop.has(id) ? ' ↺' : ''}`
+  }
+  const order = columns(ids, c.edges).flat()
+  const w = Math.min(24, Math.max(...order.map(id => name(id).length)))
+  return order.flatMap(id => {
+    const out = c.edges.filter(e => e.from === id).map(e => (e.label ? `${byId.get(e.to)?.label ?? e.to} (${e.label})` : (byId.get(e.to)?.label ?? e.to)))
+    const into = c.edges.some(e => e.to === id)
+    if (!out.length) return into ? [] : [`${name(id)} (alone)`]
+    return [`${pad(name(id), w)} ─▶ ${out.join(', ')}`]
+  })
 }
 
-/** Lines for a static component (no title: the caller draws it bold). Interactive ones (calc, choice, send) give []. */
-export const textLines = (c: Component, sort?: Sort): string[] => {
+/** Numbered messages under the actor row: `1. Client → API: POST /login`. */
+const sequenceLines = (c: Extract<Component, { type: 'sequence' }>): string[] => {
+  const w = String(c.steps.length).length
+  return [c.actors.join('  ·  '), ...c.steps.map((s, i) => `${String(i + 1).padStart(w)}. ${s.from} ${s.from === s.to ? '↻' : '→'} ${s.to}${s.label ? ': ' + s.label : ''}`)]
+}
+
+/** Lines for a component (no title: the caller draws it bold). `step` picks a tour's stop; -1 is the overview. */
+export const textLines = (c: Component, step = -1): string[] => {
   switch (c.type) {
-    case 'bars': {
-      const max = c.max ?? Math.max(1, ...Object.values(c.values))
-      return barLines(c.values, max, n => `${fmtNum(n)}${unitOf(c.unit)}`)
+    case 'tour': {
+      const s = c.steps[step]
+      return graphLines({ type: 'graph', nodes: c.nodes, edges: c.edges }, s ? new Set(s.focus) : undefined)
     }
-    case 'pie': {
-      const total = Object.values(c.values).reduce((a, b) => a + b, 0) || 1
-      return barLines(c.values, total, n => `${Math.round((n / total) * 100)}%`)
-    }
-    case 'line': {
-      const w = Math.max(...Object.keys(c.series).map(k => k.length))
-      return [
-        ...Object.entries(c.series).map(
-          ([k, ys]) => `${pad(k, w)} ${spark(ys)}  ${fmtNum(ys[0] ?? 0)} → ${fmtNum(ys.at(-1) ?? 0)}${unitOf(c.unit)} (low ${fmtNum(Math.min(...ys))}, high ${fmtNum(Math.max(...ys))})`,
-        ),
-        `${' '.repeat(w + 1)}${c.x[0]} … ${c.x.at(-1)}`,
-      ]
-    }
+    case 'bars':
+      return barLines(c.values, c.max ?? Math.max(1, ...Object.values(c.values)), c.unit)
     case 'scatter':
       return scatterLines(c)
-    case 'table':
-      return tableLines(c.columns, c.rows, sort)
     case 'tree':
       return treeLines(c.nodes)
     case 'flow':
       return c.lanes.map(l => l.join(' ──▶ '))
     case 'graph':
       return graphLines(c)
-    case 'card':
-      return [
-        ...(c.body ? [c.body] : []),
-        ...Object.entries(c.fields ?? {}).map(([k, v]) => `${k}: ${v}`),
-        ...(c.tags?.length ? [c.tags.map(t => `[${t}]`).join(' ')] : []),
-      ]
-    case 'stat':
-      return [c.delta ? c.value + '  ' + c.delta : c.value, ...(c.note ? [c.note] : [])]
-    case 'map':
-      return [
-        c.stops.map((s, i) => `(${i + 1}) ${s.label}`).join(' ──▶ '),
-        ...c.stops.flatMap((s, i) => (s.note ? [`  ${i + 1}. ${s.note}`] : [])),
-        ...(c.stops.some(s => s.lat !== undefined) ? [] : ['  (schematic: no coordinates)']),
-      ]
-    default:
-      return []
+    case 'sequence':
+      return sequenceLines(c)
   }
 }
 
-/** The heading a component draws above its lines. */
-export const titleOf = (c: Component): string | undefined => {
-  if (c.type === 'stat' || c.type === 'choice') return c.label
-  if (c.type === 'send') return undefined
-  return c.title
-}
-
-/** A text slider: `[████░░░░░░] 40`. */
-export const sliderBar = (value: number, min: number, max: number, width = 16): string => {
-  const f = Math.max(0, Math.min(width, Math.round(((value - min) / (max - min || 1)) * width)))
-  return `[${'█'.repeat(f)}${'░'.repeat(width - f)}]`
+/** One line saying what a picture holds, for `alt` and the terminal's summary. */
+export const summaryOf = (c: Component): string => {
+  switch (c.type) {
+    case 'graph':
+      return `${c.nodes.length} parts, ${c.edges.length} links`
+    case 'tour':
+      return `a ${c.steps.length}-step tour of ${c.nodes.length} parts`
+    case 'sequence':
+      return `${c.actors.length} actors, ${c.steps.length} messages`
+    case 'flow':
+      return c.lanes.map(l => l.join(' → ')).join('; ')
+    case 'tree':
+      return c.nodes.map(n => n.label).join(', ')
+    case 'bars':
+      return Object.entries(c.values)
+        .map(([k, v]) => `${k} ${fmtNum(v)}`)
+        .join(', ')
+    case 'scatter':
+      return `${c.points.length} points, ${c.x} by ${c.y}`
+  }
 }

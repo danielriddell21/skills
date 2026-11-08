@@ -1,6 +1,6 @@
 {
   "name": "looks-good-to-me",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Mod + skill: /lgtm is your auto-approval gate for one turn (variants: safe, decide, plan, push, yolo). Hooks into your-call and are-you-sure-bro; a chip shows it is on and every auto-approval is logged",
   "types": "./types/index.d.ts",
   "author": {

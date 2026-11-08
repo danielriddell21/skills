@@ -1,6 +1,6 @@
 {
   "name": "tell-me-the-damage",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Mod: one-line band after each working turn: files changed, tests, time, cost, with expandable details",
   "types": "./types/index.d.ts",
   "author": {

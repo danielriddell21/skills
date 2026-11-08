@@ -1,6 +1,6 @@
 {
   "name": "are-you-sure-bro",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "Mod: confirms only dangerous Bash commands (data loss, irreversible) and writes to sensitive files; optional strictness and noisy-output cap",
   "author": {
     "name": "Daniel Riddell"

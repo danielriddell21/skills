@@ -1,18 +1,17 @@
 // From what Claude wrote to components that are safe to draw: ```ui blocks hold one JSON component per
 // line (JSON Lines, so finished lines draw while the rest streams); ```viz blocks hold one older chart.
-import type { CalcInput, CalcOutput, Component, Point, Stop, TreeNode } from '../types'
+import type { Component, Edge, GraphNode, Message, Point, TourStep, TreeNode } from '../types'
 
 export type Block = { index: number; components: Component[]; skipped: number; pending: boolean }
 export type Segment = { kind: 'text'; text: string } | { kind: 'block'; block: Block }
 
 const LABEL = 48
 const ITEMS = 12
-const ROWS = 50
-const COLS = 8
-const SERIES = 4
+// A diagram past these is too big to read in the thread: the skill sends it to the side panel instead.
+const NODES = 24
+const EDGES = 40
+const STEPS = 30
 const POINTS = 20
-const SLICES = 4
-const TEXT = 600
 
 const isObj = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v)
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 1)}…` : s)
@@ -21,17 +20,16 @@ const str = (v: unknown, n = LABEL): string | undefined => {
   return typeof v === 'string' && v.trim() ? clip(v.replace(/\s+/g, ' ').trim(), n) : undefined
 }
 const num = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined)
-const ident = (v: unknown): string | undefined => (typeof v === 'string' && /^[A-Za-z_]\w{0,31}$/.test(v) ? v : undefined)
 const arr = (v: unknown, n: number): unknown[] => (Array.isArray(v) ? v.slice(0, n) : [])
 const opt = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T
 
-const numMap = (raw: unknown, n: number, nonNeg: boolean): Record<string, number> | undefined => {
+const numMap = (raw: unknown, n: number): Record<string, number> | undefined => {
   if (!isObj(raw)) return undefined
   const out: Record<string, number> = {}
   for (const [k, v] of Object.entries(raw).slice(0, n)) {
     const key = str(k)
     const val = num(v)
-    if (key && val !== undefined && (!nonNeg || val >= 0)) out[key] = val
+    if (key && val !== undefined && val >= 0) out[key] = val
   }
   return Object.keys(out).length ? out : undefined
 }
@@ -44,53 +42,33 @@ const nodes = (raw: unknown, depth = 0): TreeNode[] =>
     return [kids.length ? { label: l, children: kids } : { label: l }]
   })
 
+/** `[from, to, label?]` or `{from, to, label}`, both ends among `ids`. */
+const links = (raw: unknown, n: number, ids: Set<string>): Edge[] =>
+  arr(raw, n).flatMap(e => {
+    const [from, to, label] = Array.isArray(e) ? e : isObj(e) ? [e.from, e.to, e.label] : []
+    const f = str(from, 32)
+    const t = str(to, 32)
+    return f && t && ids.has(f) && ids.has(t) ? [opt({ from: f, to: t, label: str(label, 32) })] : []
+  })
+
 type Norm = (r: Record<string, unknown>, title: string | undefined) => Component | undefined
 
 const bars: Norm = (r, title) => {
-  const values = numMap(r.values, ITEMS, true)
+  const values = numMap(r.values, ITEMS)
   return values ? opt({ type: 'bars' as const, title, values, max: num(r.max), unit: str(r.unit, 12) }) : undefined
 }
 
-const line: Norm = (r, title) => {
-  const x = arr(r.x, 40).flatMap(v => str(v, 16) ?? [])
-  if (x.length < 2 || !isObj(r.series)) return undefined
-  const series: Record<string, number[]> = {}
-  for (const [k, v] of Object.entries(r.series).slice(0, SERIES)) {
-    const ys = arr(v, x.length).map(num)
-    if (str(k) && ys.length === x.length && ys.every(y => y !== undefined)) series[str(k) as string] = ys as number[]
+const scatter =
+  (quadrant: boolean): Norm =>
+  (r, title) => {
+    const points = arr(r.points, POINTS).flatMap((p): Point[] => {
+      const l = isObj(p) ? str(p.label ?? p.id) : undefined
+      const x = isObj(p) ? num(p.x) : undefined
+      const y = isObj(p) ? num(p.y) : undefined
+      return l && x !== undefined && y !== undefined ? [{ label: l, x, y }] : []
+    })
+    return points.length ? opt({ type: 'scatter' as const, title, x: str(r.x) ?? 'x', y: str(r.y) ?? 'y', points, quadrant: quadrant || r.quadrant === true || undefined }) : undefined
   }
-  return Object.keys(series).length ? opt({ type: 'line' as const, title, x, series, unit: str(r.unit, 12) }) : undefined
-}
-
-const scatter = (quadrant: boolean): Norm => (r, title) => {
-  const points = arr(r.points, POINTS).flatMap((p): Point[] => {
-    const l = isObj(p) ? str(p.label ?? p.id) : undefined
-    const x = isObj(p) ? num(p.x) : undefined
-    const y = isObj(p) ? num(p.y) : undefined
-    return l && x !== undefined && y !== undefined ? [{ label: l, x, y }] : []
-  })
-  return points.length ? opt({ type: 'scatter' as const, title, x: str(r.x) ?? 'x', y: str(r.y) ?? 'y', points, quadrant: quadrant || r.quadrant === true || undefined }) : undefined
-}
-
-const pie: Norm = (r, title) => {
-  const all = numMap(r.values, ITEMS, true)
-  if (!all || !Object.values(all).some(v => v > 0)) return undefined
-  // Past four slices the colours stop being tellable apart: keep the three biggest and fold the rest into Other.
-  const sorted = Object.entries(all).sort((a, b) => b[1] - a[1])
-  const values = sorted.length > SLICES ? { ...Object.fromEntries(sorted.slice(0, SLICES - 1)), Other: sorted.slice(SLICES - 1).reduce((a, [, v]) => a + v, 0) } : all
-  return { type: 'pie', title, values }
-}
-
-const table: Norm = (r, title) => {
-  const columns = arr(r.columns, COLS).flatMap(c => str(c, 24) ?? [])
-  if (!columns.length) return undefined
-  const rows = arr(r.rows, ROWS).flatMap(row => {
-    if (!Array.isArray(row)) return []
-    const cells = columns.map((_, i) => num(row[i]) ?? str(row[i], 40) ?? '')
-    return cells.some(c => c !== '') ? [cells] : []
-  })
-  return rows.length ? { type: 'table', title, columns, rows } : undefined
-}
 
 const tree: Norm = (r, title) => {
   const n = nodes(r.nodes)
@@ -106,104 +84,57 @@ const flow: Norm = (r, title) => {
   return lanes.length ? { type: 'flow', title, lanes } : undefined
 }
 
-const edgeParts = (e: unknown): unknown[] => {
-  if (Array.isArray(e)) return e
-  return isObj(e) ? [e.from, e.to, e.label] : []
-}
-
 const graph: Norm = (r, title) => {
-  const ns = arr(r.nodes, ITEMS).flatMap(n => {
+  const seen = new Set<string>()
+  const ns = arr(r.nodes, NODES).flatMap((n): GraphNode[] => {
     const id = isObj(n) ? str(n.id, 32) : str(n, 32)
-    return id ? [{ id, label: (isObj(n) ? str(n.label, 32) : undefined) ?? id }] : []
+    if (!id || seen.has(id)) return []
+    seen.add(id)
+    if (!isObj(n)) return [{ id, label: id }]
+    return [opt({ id, label: str(n.label, 32) ?? id, note: str(n.note, 120), hot: n.hot === true || undefined })]
   })
-  const ids = new Set(ns.map(n => n.id))
-  const edges = arr(r.edges, 24).flatMap(e => {
-    const [from, to, label] = edgeParts(e)
-    const f = str(from, 32)
-    const t = str(to, 32)
-    return f && t && ids.has(f) && ids.has(t) ? [opt({ from: f, to: t, label: str(label, 24) })] : []
-  })
+  const edges = links(r.edges, EDGES, seen)
   return ns.length >= 2 && edges.length ? { type: 'graph', title, nodes: ns, edges } : undefined
 }
 
-const card: Norm = (r, title) => {
-  if (!title) return undefined
-  const fields: Record<string, string> = {}
-  if (isObj(r.fields)) for (const [k, v] of Object.entries(r.fields).slice(0, ITEMS)) if (str(k, 24) && str(v)) fields[str(k, 24) as string] = str(v) as string
-  const tags = arr(r.tags, 6).flatMap(t => str(t, 20) ?? [])
-  return opt({ type: 'card' as const, title, body: str(r.body, TEXT), fields: Object.keys(fields).length ? fields : undefined, tags: tags.length ? tags : undefined })
-}
-
-const stat: Norm = r => {
-  const label = str(r.label)
-  const value = str(r.value, 24)
-  return label && value ? opt({ type: 'stat' as const, label, value, delta: str(r.delta, 24), note: str(r.note) }) : undefined
-}
-
-const calcInput = (i: unknown): CalcInput[] => {
-  if (!isObj(i)) return []
-  const id = ident(i.id)
-  const min = num(i.min) ?? 0
-  const max = num(i.max) ?? 100
-  if (!id || max <= min) return []
-  const step = num(i.step) && (i.step as number) > 0 ? (i.step as number) : (max - min) / 100
-  const value = Math.min(max, Math.max(min, num(i.value) ?? min))
-  return [opt({ id, label: str(i.label) ?? id, value, min, max, step, unit: str(i.unit, 12) })]
-}
-
-const calc: Norm = (r, title) => {
-  const inputs = arr(r.inputs, 8).flatMap(calcInput)
-  const outputs = arr(r.outputs, 8).flatMap((o): CalcOutput[] => {
-    if (!isObj(o) || typeof o.formula !== 'string' || o.formula.length > 300) return []
-    return [opt({ id: ident(o.id), label: str(o.label) ?? 'result', formula: o.formula, unit: str(o.unit, 12), digits: num(o.digits) })]
+const tour: Norm = (r, title) => {
+  const g = graph(r, title)
+  if (g?.type !== 'graph') return undefined
+  const ids = new Set(g.nodes.map(n => n.id))
+  const steps = arr(r.steps, 12).flatMap((s): TourStep[] => {
+    if (!isObj(s)) return []
+    const text = str(s.text, 300)
+    const focus = arr(s.focus, NODES).flatMap(f => str(f, 32) ?? []).filter(f => ids.has(f))
+    return text ? [{ focus, text }] : []
   })
-  return inputs.length && outputs.length ? { type: 'calc', title, inputs, outputs } : undefined
+  return steps.length >= 2 ? { type: 'tour', title, nodes: g.nodes, edges: g.edges, steps } : undefined
 }
 
-const choice: Norm = r => {
-  const id = ident(r.id)
-  const options = arr(r.options, 8).flatMap(o => str(o, 32) ?? [])
-  if (!id || options.length < 2) return undefined
-  const value = str(r.value, 32)
-  return opt({ type: 'choice' as const, id, label: str(r.label) ?? id, options, value: value && options.includes(value) ? value : undefined })
-}
-
-const map: Norm = (r, title) => {
-  const stops = arr(r.stops, ITEMS).flatMap((s): Stop[] => {
-    const label = isObj(s) ? str(s.label) : str(s)
-    if (!label) return []
-    const lat = isObj(s) ? num(s.lat) : undefined
-    const lon = isObj(s) ? num(s.lon) : undefined
-    const ok = lat !== undefined && lon !== undefined && Math.abs(lat) <= 90 && Math.abs(lon) <= 180
-    return [opt({ label, lat: ok ? lat : undefined, lon: ok ? lon : undefined, note: isObj(s) ? str(s.note, 80) : undefined })]
-  })
-  return stops.length ? { type: 'map', title, stops } : undefined
-}
-
-const send: Norm = r => {
-  const label = str(r.label, 32)
-  const prompt = typeof r.prompt === 'string' && r.prompt.trim() ? r.prompt.trim().slice(0, 1000) : undefined
-  return label && prompt ? { type: 'send', label, prompt } : undefined
+const sequence: Norm = (r, title) => {
+  const listed = arr(r.actors ?? r.participants, 8).flatMap(a => str(a, 24) ?? [])
+  const rawSteps = r.steps ?? r.messages
+  // Actors not listed are taken from the steps, in order of first appearance.
+  const named = new Set(listed)
+  for (const s of arr(rawSteps, STEPS)) {
+    const [f, t] = Array.isArray(s) ? s : isObj(s) ? [s.from, s.to] : []
+    for (const a of [str(f, 24), str(t, 24)]) if (a && named.size < 8) named.add(a)
+  }
+  const steps: Message[] = links(rawSteps, STEPS, named)
+  const used = [...named].filter(a => steps.some(s => s.from === a || s.to === a))
+  return used.length >= 2 && steps.length ? { type: 'sequence', title, actors: used, steps } : undefined
 }
 
 const NORMS: Record<string, Norm> = {
+  graph,
+  tour,
+  walkthrough: tour,
+  flow,
+  sequence,
+  tree,
   bars,
   bar: bars,
-  line,
   scatter: scatter(false),
   quadrant: scatter(true),
-  pie,
-  table,
-  tree,
-  flow,
-  graph,
-  card,
-  stat,
-  calc,
-  calculator: calc,
-  choice,
-  map,
-  send,
 }
 
 export const TYPES = Object.keys(NORMS)
@@ -234,7 +165,7 @@ export const parseBody = (body: string, open: boolean): { components: Component[
     if (open) lines.pop()
     raws = lines.filter(l => l.trim()).map(l => parse(l.trim()) ?? null)
   }
-  const components = raws.slice(0, 24).flatMap(r => normalize(r) ?? [])
+  const components = raws.slice(0, 8).flatMap(r => normalize(r) ?? [])
   return { components, skipped: raws.length - components.length }
 }
 

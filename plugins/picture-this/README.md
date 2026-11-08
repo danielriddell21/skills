@@ -1,15 +1,38 @@
 # picture-this
 
-Mod. Intelligent UI for Claude Code, after Open Intelligent UI and ChatGPT's Intelligent UI: Claude answers with native components instead of prose when a picture is clearer, and you can work them without another model call.
+Mod + skill. Visualise complexity and big ideas: Claude judges whether something is complex enough for a picture, tells you why ("9 services, 14 calls, a retry cycle"), offers 2-3 picture options (a native AskUserQuestion with a text preview of each), and draws only the one you pick.
 
-- **How Claude draws:** a fenced ```ui block in the reply, one JSON component per line (finished lines draw while the rest streams; the unfinished part shows `drawing…`), or the `mcp__picture-this__show` tool with `{title, components}` when the picture is the whole answer. Older ```viz blocks still draw.
-- **Components:** `bars`, `line`, `scatter` (or `quadrant`), `pie`, `table`, `tree`, `flow`, `graph`, `card`, `stat`, `map` (schematic: numbered stops, no tiles), `calc`, `choice`, `send`. On desktop, VS Code and mobile charts, flows, graphs and maps are SVG and tables are markdown; the terminal gets text forms of everything.
-- **Live controls, no model call:** `calc` inputs move with a slider (terminal and desktop; drag it, or click and use ←/→, PgUp/PgDn, Home/End) and with − / + (every surface); outputs recompute from their formulas (a small safe evaluator: numbers, input ids, `+ - * / % ^`, `min max abs round floor ceil sqrt pow log exp`; no eval). `choice` buttons pick an option; tables sort by a column.
-- **Send back:** a `send` button fills `{id}`s from the block's controls and puts the prompt in your input box. It never submits; you press Enter.
-- **Picking a picture:** each prompt goes through a cheap classifier that suggests a component (table, chart, diagram, calculator, map, choice). While `matchmaker` is on it skips this, since matchmaker already classifies the prompt and its hint points here: one call per prompt either way. Option `classify: false` turns it off.
-- **Rules Claude is given:** one idea per block, short labels, say when numbers are estimates or sample data, never invent live data, every control must change an output, and the answer must stand without the picture.
-- **Hooks for other plugins:** `too-long-didnt-read` publishes summary charts in its own `cards` state and picture-this draws each under the answer it belongs to. It reads `picture-this.ready` to know the charts will be drawn.
+```
+/plugin install picture-this --marketplace danielriddell21/skills
+```
 
-Not possible in a mod: real map tiles, 3D, or HTML and JavaScript written by Claude (a mod draws only the host's own elements). For those, the `show-dont-tell` skill falls back to a file in the side panel.
+- **The gate:** draw only past a threshold: 6+ linked parts, a cycle or hub, 5+ steps with branches or 3+ actors, 4+ states, 3+ options on 3+ criteria, or a change across 5+ dependent files. Below it, text. Asking for a picture skips the offer.
+- **Guided tours:** `tour` walks you through a graph a stage at a time: Back / Next light up that step's parts, dim the rest and show a caption. It runs locally, with no model call, on every surface (SVG on desktop, VS Code and mobile; `●` marks in the terminal). A big idea that needs more than a lit graph goes to the side panel as a self-contained step-through page.
+- **Components:** `graph` (parts and links; `hot` marks where the complexity lives, cycles are found and drawn dashed), `sequence` (who calls whom, in order), `flow`, `tree`, `bars`, `scatter`/`quadrant`. Written as a fenced ```ui block, one JSON per line (finished lines draw while the rest streams), or the `mcp__picture-this__show` tool.
+- **Too big for the thread** (over 24 nodes or 30 messages): a Mermaid file in the side panel, which the app draws itself with pan and zoom.
+- **Hooks for other plugins:** `too-long-didnt-read` publishes summary charts in its `cards` state; picture-this draws each under its answer and sets `picture-this.ready`.
 
-**Skill:** `show-dont-tell`, which says when and how to show instead of tell.
+**Skill:** `show-dont-tell`: the gate, the offer, and which route draws it.
+
+## What Claude Code can draw (why it looks like this)
+
+Claude Code is not HTML. A mod returns a tree of the host's own elements, and each surface draws them its own way:
+
+| Surface | Elements a mod gets | Pictures |
+|---|---|---|
+| terminal | Box, Text, Button, Input, Select, Link, Code, Markdown, Client, Raster, Image | no `Svg`. `Raster` is a coloured cell grid; `Image` shows pixels only in kitty, Ghostty and iTerm2 3.5+. So: text diagrams |
+| desktop | the six shared + Input, Select, Svg, Client | `Svg` as an image, or a script-less sandboxed frame with `isInteractive` (hover, `<title>` tooltips) |
+| VS Code | as desktop, no Client | `Svg` always an image: no hover or tooltips |
+| mobile | as VS Code | `Svg` in a web view |
+
+Limits that shaped this version:
+
+- **No HTML or script in the thread.** SVG markup is isolated (≤128 KB, scripts and handlers stripped). Rich, zoomable pages belong in the side panel (`SendUserFile`) or an Artifact, not the thread.
+- **No theme tokens.** An SVG cannot read the app's colours, so each drawing carries a `<style>` with a `prefers-color-scheme: dark` override.
+- **Markdown is the most native form.** Every surface draws a markdown table as it draws a reply, so tables, matrices and cards are plain markdown now, not components.
+- **Mermaid is not drawn in the thread.** Markdown fences show as code. The side panel draws `.mmd` files, so big diagrams go there.
+- **Choices are better native.** AskUserQuestion (with option previews) and `your-call` replace the old `choice` / `send` buttons.
+
+## What changed in 0.7.0
+
+Removed: the per-prompt classifier (a model call on every prompt; the skill's gate replaces it, and its `classify` option), `table`, `card`, `stat` (now markdown), `choice`, `send` (now AskUserQuestion / your-call), `calc` and its slider, `line`, `pie`, and the schematic `map` (now the side panel, for real maps and data charts). Added: `tour` (guided walkthroughs), `sequence`, `hot` and `note` on graph nodes, cycle detection, a barycentre layout that crosses fewer edges, boxes that grow and wrap to fit labels instead of cutting them at 14 characters, theme-aware colours, interactive SVG (hover tooltips on desktop and mobile), and an `alt` that says what each picture holds. Fixed: a labelled edge set `font-size` twice, so the whole graph failed to load on desktop.

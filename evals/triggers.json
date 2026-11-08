@@ -33,12 +33,14 @@
     },
     "show-dont-tell": {
       "should": [
-        "compare Redis, Memcached and in-memory caching for us",
-        "explain the request flow through these 5 services"
+        "explain the request flow through these 5 services",
+        "map out how the modules in this repo depend on each other",
+        "walk me through how the auth system works, step by step"
       ],
       "should_not": [
         "what is 2+2",
-        "fix this typo"
+        "fix this typo",
+        "should I use let or const here"
       ]
     },
     "phone-a-friend": {

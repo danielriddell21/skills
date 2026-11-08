@@ -64,16 +64,14 @@ For a live subagent panel, use [`savvy-progress`](https://github.com/johnnyvizz/
 
 ### `picture-this`
 
-*Intelligent UI: Claude answers with native pictures and controls*
+*Visualise complexity: a picture only when it earns one, and only after you pick it*
 
 | Part | Type | What it does |
 |---|---|---|
-| ```ui blocks | mod | Charts (bars, line, scatter, pie), tables, cards, stats, trees, flows, graphs, schematic maps, drawn in the thread |
+| show-dont-tell | skill | Judges complexity, says why, offers picture options (AskUserQuestion with previews) |
+| ```ui blocks | mod | Graphs (hot spots, cycles), guided tours (Back / Next), sequence diagrams, flows, trees, bars, quadrants, drawn in the thread |
 | show | tool | Same components when the picture is the whole answer |
-| live controls | mod | Calculators with sliders and − / +, choices, sort; run locally, no model call |
-| send | mod | A button that puts your values in the prompt for you to send |
-| picker | mod | Cheap classifier suggests a component per prompt (matchmaker hints instead when on) |
-| show-dont-tell | skill | When and how to show instead of tell |
+| side panel | skill | Diagrams too big for the thread go out as Mermaid |
 
 ### `looks-good-to-me`
 

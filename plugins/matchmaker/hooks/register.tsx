@@ -83,7 +83,7 @@ export const register: Register = (on, options) => {
     const rest = await next(e)
     const chip = (
       <Box key={chipKey(RANK.route, 'route')}>
-        <Text key="mm" color={off ? undefined : 'magenta'} dimColor={off}>
+        <Text key="mm" color={off ? undefined : 'suggestion'} dimColor={off}>
           {off ? '✦ matchmaker off ' : `${chipText(r ?? '')} `}
         </Text>
         <Button

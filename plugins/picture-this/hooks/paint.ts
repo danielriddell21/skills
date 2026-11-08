@@ -1,37 +1,83 @@
-// The SVG toolkit every renderer shares. Colours come from a <style> with a prefers-color-scheme override,
-// so one drawing reads on light and dark; the host isolates the markup (an image, or a script-less frame
-// when interactive), so nothing here can reach the page.
+// The SVG toolkit every renderer shares. The host isolates the markup (an image, or a script-less frame when
+// interactive), so nothing here can reach the page.
 
-// Categorical slots of the reference palette; mid steps that hold up on light and dark.
-export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#6250d6']
-export const ADD = '#1baf7a'
-export const DEL = '#d64545'
-export const CHG = '#d99a1e'
+// Colours are CSS variables, set from the person's Claude theme (/config `theme`), so a picture matches the
+// app around it. Values approximate Claude Code's own theme colours (the host gives no way to resolve a theme
+// key to a colour inside an SVG); a theme we do not know falls back to the OS light/dark preference.
+export type Palette = {
+  text: string // body text
+  mute: string // `inactive`: secondary text
+  line: string // `subtle`: lines, borders, arrows
+  faint: string // grid, lifelines, lane bands
+  node: string // box fill
+  claude: string // the accent: hot, focus, the lit path
+  add: string // `diffAdded` / `success`
+  del: string // `diffRemoved` / `error`
+  chg: string // `warning`
+  series: [string, string, string, string] // claude, suggestion, success, planMode
+}
+
+const LIGHT: Palette = {
+  text: '#1f1f1f', mute: '#666666', line: '#a8a8a8', faint: '#e6e3dd', node: '#faf9f5', claude: '#d77757',
+  add: '#2c7a39', del: '#ab2b3f', chg: '#966c1e', series: ['#d77757', '#5769f7', '#2c7a39', '#006666'],
+}
+const DARK: Palette = {
+  text: '#ececec', mute: '#999999', line: '#6b6b6b', faint: '#333333', node: '#262624', claude: '#d77757',
+  add: '#4eba65', del: '#ff6b80', chg: '#ffc107', series: ['#d77757', '#b1b9f9', '#4eba65', '#48968c'],
+}
+// Colour-blind themes: added and removed as blue and orange, never green against red.
+const LIGHT_CB: Palette = { ...LIGHT, add: '#0066cc', del: '#c25e00', series: ['#d77757', '#5769f7', '#0066cc', '#7a5195'] }
+const DARK_CB: Palette = { ...DARK, add: '#66aaff', del: '#ff9f4a', series: ['#d77757', '#b1b9f9', '#66aaff', '#bc8cff'] }
+
+/** The palette for a Claude theme name (`dark`, `light-daltonized`, `dark-ansi`…); undefined when unknown. */
+export const paletteFor = (theme: string | undefined): Palette | undefined => {
+  const t = (theme ?? '').toLowerCase()
+  const cb = t.includes('dalton') || t.includes('colorblind')
+  if (t.startsWith('dark')) return cb ? DARK_CB : DARK
+  if (t.startsWith('light')) return cb ? LIGHT_CB : LIGHT
+  return undefined
+}
+
+const vars = (p: Palette) =>
+  `--tx:${p.text};--mu:${p.mute};--ln:${p.line};--fa:${p.faint};--nd:${p.node};--cl:${p.claude};--add:${p.add};--del:${p.del};--chg:${p.chg};` +
+  p.series.map((c, i) => `--s${i}:${c}`).join(';')
+
+// Colour references for markup: always `style="fill:…"`, never a presentation attribute.
+export const SERIES = ['var(--s0)', 'var(--s1)', 'var(--s2)', 'var(--s3)']
+export const CLAUDE = 'var(--cl)'
 export const MAX_SVG = 131072
 
-const STYLE =
-  '<style>' +
-  '.t{fill:#3f3f46}.m{fill:#71717a}.ln{stroke:#a1a1aa}.ah{fill:#a1a1aa}.nd{fill:#f4f4f5;stroke:#2a78d6}.hot{fill:#fde7dc;stroke:#eb6834}.lf{stroke:#d4d4d8}.bg{fill:#f4f4f5}.gr{stroke:#e4e4e7}' +
-  '@media (prefers-color-scheme:dark){.t{fill:#e4e4e7}.m{fill:#a1a1aa}.ln{stroke:#71717a}.ah{fill:#71717a}.nd{fill:#1f2937;stroke:#5b9be6}.hot{fill:#43251a;stroke:#f08a5d}.lf{stroke:#3f3f46}.bg{fill:#232326}.gr{stroke:#3f3f46}}' +
-  'g.n:hover rect{stroke-width:2.5}.dm{opacity:.28}.on{stroke:#2a78d6;stroke-width:2.2}' +
-  `.add{stroke:${ADD}}.del{stroke:${DEL}}.chg{stroke:${CHG}}.gone text{text-decoration:line-through}` +
-  '</style>'
+const RULES =
+  '.t{fill:var(--tx)}.m{fill:var(--mu)}.ln{stroke:var(--ln)}.ah{fill:var(--ln)}.nd{fill:var(--nd);stroke:var(--ln)}' +
+  '.hot{fill:color-mix(in srgb,var(--cl) 16%,var(--nd));stroke:var(--cl)}.lf{stroke:var(--fa)}.bg{fill:var(--fa);fill-opacity:.5}.gr{stroke:var(--fa)}' +
+  'g.n:hover rect{stroke-width:2.5}.dm{opacity:.28}.on{stroke:var(--cl);stroke-width:2.2}.onh{fill:var(--cl)}' +
+  '.add{stroke:var(--add)}.del{stroke:var(--del)}.chg{stroke:var(--chg)}.addh{fill:var(--add)}.delh{fill:var(--del)}.gone text{text-decoration:line-through}'
+
+// Set per drawing by svgFor; module state is fine, drawing is synchronous.
+let palette: Palette | undefined
+export const usePalette = (p: Palette | undefined) => {
+  palette = p
+}
+const style = () => {
+  const root = palette ? `:root{${vars(palette)}}` : `:root{${vars(LIGHT)}}@media (prefers-color-scheme:dark){:root{${vars(DARK)}}}`
+  return `<style>${root}${RULES}</style>`
+}
 const FONT = 'font-family="system-ui,-apple-system,Segoe UI,sans-serif"'
 
-const marker = (id: string, fill: string) =>
-  `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path ${fill} d="M0 0L10 5L0 10z"/></marker>`
+const marker = (id: string, cls: string) =>
+  `<marker id="${id}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path class="${cls}" d="M0 0L10 5L0 10z"/></marker>`
 /** Arrowheads: plain, lit (a tour step), added, removed. */
-export const DEFS = `<defs>${marker('pt-a', 'class="ah"')}${marker('pt-on', `fill="${SERIES[0]}"`)}${marker('pt-add', `fill="${ADD}"`)}${marker('pt-del', `fill="${DEL}"`)}</defs>`
+export const DEFS = `<defs>${marker('pt-a', 'ah')}${marker('pt-on', 'onh')}${marker('pt-add', 'addh')}${marker('pt-del', 'delh')}</defs>`
 
 export const esc = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;')
 export const r1 = (n: number) => Math.round(n * 10) / 10
-export const svg = (w: number, h: number, body: string, title?: string) => {
-  const head = title ? `<text class="t" x="0" y="14" font-size="13" font-weight="600">${esc(title)}</text>` : ''
-  return `<svg xmlns="http://www.w3.org/2000/svg" ${FONT} viewBox="0 0 ${Math.ceil(w)} ${Math.ceil(h)}" width="${Math.ceil(w)}">${STYLE}${DEFS}${head}${body}</svg>`
-}
+/** The SVG document. The title is drawn by the host as Text (selectable, in the reply's own type), never in here. */
+export const svg = (w: number, h: number, body: string, _title?: string) =>
+  `<svg xmlns="http://www.w3.org/2000/svg" ${FONT} viewBox="0 0 ${Math.ceil(w)} ${Math.ceil(h)}" width="${Math.ceil(w)}">${style()}${DEFS}${body}</svg>`
 export const text = (x: number, y: number, s: string, extra = '', cls = 'm', size = 11) => `<text class="${cls}" x="${r1(x)}" y="${r1(y)}" font-size="${size}"${extra}>${esc(s)}</text>`
 export const tip = (s: string) => '<title>' + esc(s) + '</title>'
-export const top = (title?: string) => (title ? 26 : 4)
+// Room above the drawing; titles are host Text now, so no title band.
+export const top = (_title?: string) => 4
 export const MID = ' text-anchor="middle"'
 export const END = ' text-anchor="end"'
 

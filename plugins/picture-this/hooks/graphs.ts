@@ -3,7 +3,7 @@
 import type { Component, Edge, GraphNode, Panel, TourStep } from '../types'
 
 import { columns, cyclic } from './layout'
-import { DEL, MID, SERIES, esc, r1, svg, text, textW, tip, top, wrap } from './paint'
+import { CLAUDE, MID, esc, r1, svg, text, textW, tip, top, wrap } from './paint'
 
 const NODE_H = 32
 const GAP_X = 56
@@ -46,7 +46,7 @@ export const layout = (nodes: GraphNode[], edges: Edge[]): Layout => {
 const NONE: Box = { x: 0, y: 0, w: 0, h: 0, col: 0 }
 
 /** Heat 0-1 as a fill: the accent at rising strength. */
-const heatFill = (h: number) => ` style="fill:${SERIES[1]};fill-opacity:${r1(0.12 + 0.78 * Math.max(0, Math.min(1, h)))}"`
+const heatFill = (h: number) => ` style="fill:${CLAUDE};fill-opacity:${r1(0.12 + 0.78 * Math.max(0, Math.min(1, h)))}"`
 
 type Paint = { focus?: Set<string>; dx?: number; dy?: number }
 
@@ -61,7 +61,7 @@ const boxLook = (n: GraphNode, focus?: Set<string>): { g: string; rect: string; 
   const on = focus ? focus.has(n.id) : n.hot
   const g = `n${focus && !on ? ' dm' : ''}${n.change === 'removed' ? ' gone' : ''}`
   if (n.change === 'added') return { g, rect: 'nd add', style: ' stroke-width="2"' }
-  if (n.change === 'removed') return { g, rect: 'nd del', style: ` stroke-width="1.5" stroke-dasharray="4 3" style="stroke:${DEL}"` }
+  if (n.change === 'removed') return { g, rect: 'nd del', style: ' stroke-width="1.5" stroke-dasharray="4 3"' }
   if (n.change === 'changed') return { g, rect: 'nd chg', style: ' stroke-width="2"' }
   if (n.heat !== undefined && !focus) return { g, rect: 'hot', style: ` stroke-width="1.5"${heatFill(n.heat)}` }
   return { g, rect: on ? 'hot' : 'nd', style: ' stroke-width="1.5"' }
@@ -130,19 +130,23 @@ export const paintGraph = (l: Layout, nodes: GraphNode[], edges: Edge[], p: Pain
   return lines + boxes
 }
 
-const legendFor = (c: { nodes: GraphNode[]; edges: Edge[]; heatLabel?: string }, y: number): { body: string; h: number } => {
+/** What the colours in a picture mean, as one line for the host to draw under it; undefined when nothing needs saying. */
+export const legendOf = (c: Component): string | undefined => {
+  if (c.type === 'compare') return `+ added  − removed  (against ${c.panels[0]?.label ?? 'the first panel'})`
+  if (c.type !== 'graph') return undefined
   const items: string[] = []
   if (c.nodes.some(n => n.heat !== undefined)) items.push(`shade: ${c.heatLabel ?? 'heat'}, low → high`)
   const changes = new Set([...c.nodes.map(n => n.change), ...c.edges.map(e => e.change)].filter(Boolean))
-  if (changes.size) items.push(['added', 'removed', 'changed'].filter(k => changes.has(k as never)).map(k => ({ added: '+ added (green)', removed: '− removed (red, dashed)', changed: '~ changed (amber)' })[k]).join('  '))
-  return items.length ? { body: text(0, y + 12, items.join('   ·   '), '', 'm', 10), h: 18 } : { body: '', h: 0 }
+  const marks = { added: '+ added', removed: '− removed', changed: '~ changed' } as const
+  const shown = (['added', 'removed', 'changed'] as const).filter(k => changes.has(k)).map(k => marks[k])
+  if (shown.length) items.push(shown.join('  '))
+  return items.length ? items.join('  ·  ') : undefined
 }
 
 export const graph = (c: Extract<Component, { type: 'graph' }>, focus?: Set<string>) => {
   const l = layout(c.nodes, c.edges)
   const y0 = top(c.title) + 6
-  const legend = legendFor(c, y0 + l.h + 6)
-  return svg(l.w + 2, y0 + l.h + 8 + legend.h, paintGraph(l, c.nodes, c.edges, { focus, dy: y0 }) + legend.body, c.title)
+  return svg(l.w + 2, y0 + l.h + 8, paintGraph(l, c.nodes, c.edges, { focus, dy: y0 }), c.title)
 }
 
 export const flowGraph = (c: Extract<Component, { type: 'flow' }>): Extract<Component, { type: 'graph' }> => ({
@@ -220,9 +224,7 @@ export const compare = (c: Extract<Component, { type: 'compare' }>) => {
     })
     .join('')
   const rows = Math.ceil(c.panels.length / g.perRow)
-  const legendY = y0 + rows * (l.h * scale + 52) - 14
-  const legend = text(0, legendY, '+ added (green)   − removed (red, dashed)   against the first panel', '', 'm', 10)
-  return svg(Math.min(c.panels.length, g.perRow) * (l.w * scale + 24), legendY + 8, panels + legend, c.title)
+  return svg(Math.min(c.panels.length, g.perRow) * (l.w * scale + 24), y0 + rows * (l.h * scale + 52) - 20, panels, c.title)
 }
 
 /** The graph at a zoom path ('' is the top; 'api/auth' is inside api, then inside auth), with the labels along the way. */

@@ -1,10 +1,11 @@
 import { expect, test } from 'claude-code/testing'
 
-import { RULE, TOOL } from './register'
+import { RULE, TOOL, lineColor } from './register'
 
 const PLUGIN = 'picture-this'
+// Stand-in for the host's own drawing: echoes the text (or the tool input) it was handed, so tests see what reached it.
 const base = (on: any) => {
-  on('ui.render', () => ({ type: 'Text', props: {}, children: ['plain answer'] }) as never)
+  on('ui.render', (_: unknown, e: any) => ({ type: 'Text', props: {}, children: [e.props?.text ?? (e.props?.input ? JSON.stringify(e.props.input) : 'plain answer')] }) as never)
   on('tool.call', () => ({ result: 'base' }) as never)
 }
 const msg = ($: any, text: string, surface = 'terminal') => $.ui.mount({ plugin: PLUGIN, surface, component: 'AssistantMessage', props: { text, isFirstOfReply: true } })
@@ -20,7 +21,7 @@ test('the rule gates on complexity, asks first, and points at the host for table
 test('a message without a block is left to the engine', async ($, on) => {
   base(on)
   const m = await msg($, 'just text')
-  expect(await m.find({ text: /plain answer/ } as never)).toBeTruthy()
+  expect(await m.find({ text: /just text/ } as never)).toBeTruthy()
 })
 
 test('terminal: prose and a text diagram; a bad line is counted, not shown raw', async ($, on) => {
@@ -29,7 +30,7 @@ test('terminal: prose and a text diagram; a bad line is counted, not shown raw',
   expect(await m.find({ text: /Here you go/ } as never)).toBeTruthy()
   expect(await m.find({ text: /Services/ } as never)).toBeTruthy()
   expect(await m.find({ text: /● API ─▶ DB \(reads\)/ } as never)).toBeTruthy()
-  expect(await m.find({ text: /1 piece could not be drawn/ } as never)).toBeTruthy()
+  expect(await m.find({ text: /1 picture skipped/ } as never)).toBeTruthy()
   expect(await m.find({ text: /oops/ } as never)).toBeUndefined()
 })
 
@@ -37,7 +38,7 @@ test('streaming: finished lines draw, the rest shows drawing…', async ($, on) 
   base(on)
   const m = await msg($, 'Look:\n```ui\n{"type":"flow","lanes":[["a","b"]]}\n{"type":"gr')
   expect(await m.find({ text: /a ──▶ b/ } as never)).toBeTruthy()
-  expect(await m.find({ text: /drawing…/ } as never)).toBeTruthy()
+  expect(await m.find({ text: /Drawing…/ } as never)).toBeTruthy()
 })
 
 for (const surface of ['desktop', 'mobile', 'vscode'])
@@ -120,4 +121,34 @@ test('zoom: ⊕ opens a part, the back button returns; local, no model call', as
   expect(await m.find({ text: /http +─▶ orders/ } as never)).toBeTruthy()
   await m.press({ key: `${k}-up` } as never)
   expect(await m.find({ text: /Core ⊕/ } as never)).toBeTruthy()
+})
+
+test('prose goes back through the host (bullet on the first segment only); the tool row stays the host\'s', async ($, on) => {
+  const seen: { text: string; first: boolean }[] = []
+  on('ui.render', (_: unknown, e: any) => {
+    if (e.component === 'AssistantMessage') seen.push({ text: e.props.text, first: e.props.isFirstOfReply })
+    return { type: 'Text', props: {}, children: [String(e.props?.text ?? JSON.stringify(e.props?.input))] } as never
+  })
+  await msg($, block(GRAPH))
+  expect(seen).toEqual([
+    { text: 'Here you go.', first: true },
+    { text: 'Done.', first: false },
+  ])
+  const row = await $.ui.mount({ plugin: PLUGIN, surface: 'terminal', component: 'ToolUse', requestId: 'r1', props: { tool: TOOL, tool_use_id: 'r1', input: { title: 'Plan', components: [] }, isRunning: true, isErrored: false, isInterrupted: false } } as never)
+  expect(await row.find({ text: /"title":"Plan"/ } as never)).toBeTruthy()
+  expect(await row.find({ text: /components/ } as never)).toBeUndefined()
+})
+
+test('desktop: title and legend are host Text, the picture sits in a rounded subtle frame', async ($, on) => {
+  base(on)
+  const drawn = JSON.stringify(await (await msg($, block({ ...GRAPH, nodes: [{ id: 'api', label: 'API', change: 'added', note: '3 callers' }, { id: 'db', label: 'DB' }] }), 'desktop')).drawn())
+  expect(drawn).toContain('"borderStyle":"round"')
+  expect(drawn).toContain('"borderColor":"subtle"')
+  expect(drawn).toContain('+ added')
+  expect(drawn).toContain('API: 3 callers')
+  expect(drawn).not.toContain('font-weight=\\"600\\">Services')
+})
+
+test('terminal colours are theme keys', () => {
+  expect(['+ x', '  − a ─▶ b', '~ y', '● API ─▶ DB', 'plain'].map(lineColor)).toEqual(['success', 'error', 'warning', 'claude', undefined])
 })

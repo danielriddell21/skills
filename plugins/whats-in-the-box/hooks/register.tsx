@@ -36,19 +36,20 @@ export const nextWarning = (pct: number, warned: number, steps: Step[] = STEPS):
 
 type Engine = Parameters<Hook<'session.start'>>[0]
 
-type Breakdown = { categories: { name: string; tokens: number; kind?: string }[]; totalTokens: number; maxTokens: number; percentage: number }
+type Breakdown = { categories: { name: string; tokens: number; kind?: string; color?: string }[]; totalTokens: number; maxTokens: number; percentage: number }
 
 export const toSnapshot = (b: Breakdown): Snapshot => ({
   rows: b.categories
     .filter(c => c.kind !== 'free')
-    .map(c => ({ name: c.name, tokens: c.tokens }))
+    .map(c => ({ name: c.name, tokens: c.tokens, color: c.color }))
     .sort((a, z) => z.tokens - a.tokens),
   total: b.totalTokens,
   max: b.maxTokens,
   percent: b.percentage,
 })
 
-const PALETTE = ['cyan', 'magenta', 'yellow', 'green', 'blue', 'red', 'white']
+// Each category draws in the theme colour /context itself uses for it; these theme keys stand in for older snapshots.
+const PALETTE = ['claude', 'suggestion', 'success', 'planMode', 'autoAccept', 'permission', 'inactive']
 const BAR_WIDTH = 36
 const LEGEND_MAX = 4
 
@@ -58,8 +59,8 @@ export const fmtTokens = (n: number): string => {
 }
 
 const levelColor = (percent: number): string => {
-  if (percent >= 85) return 'red'
-  return percent >= 70 ? 'yellow' : 'cyan'
+  if (percent >= 85) return 'error'
+  return percent >= 70 ? 'warning' : 'claude'
 }
 
 /** Cells per category for a bar `width` wide over `max` tokens; never more than `width` in total. */
@@ -129,7 +130,7 @@ export const register: Register = (on, options) => {
     // The Compact chip joins the shared chip row (route, turn result) under the bar.
     const chip = (
       <Box key={chipKey(RANK.context, 'compact')}>
-        <Text key="ctx-urgent" color="red" bold>■ context {Math.round(p)}% </Text>
+        <Text key="ctx-urgent" color="error" bold>■ context {Math.round(p)}% </Text>
         <Button key="compact" label="Compact" onPress={() => $.command.run({ command: 'compact', args: FOCUS })} />
       </Box>
     )
@@ -150,7 +151,7 @@ export const register: Register = (on, options) => {
 
     const cells = barCells(s.rows, s.max, BAR_WIDTH)
     const used = cells.reduce((n, c) => n + c.cells, 0)
-    const color = (name: string) => PALETTE[Math.max(0, s.rows.findIndex(r => r.name === name)) % PALETTE.length]
+    const color = (name: string) => s.rows.find(r => r.name === name)?.color ?? PALETTE[Math.max(0, s.rows.findIndex(r => r.name === name)) % PALETTE.length]
     const shown = s.rows.slice(0, LEGEND_MAX)
     const hidden = s.rows.length - shown.length
 
@@ -188,7 +189,7 @@ export const register: Register = (on, options) => {
     if (!s) return <Text dimColor>No data yet. It fills in after the first reply.</Text>
 
     const nameW = Math.max(...s.rows.map(r => r.name.length), 4)
-    const color = (name: string) => PALETTE[Math.max(0, s.rows.findIndex(r => r.name === name)) % PALETTE.length]
+    const color = (name: string) => s.rows.find(r => r.name === name)?.color ?? PALETTE[Math.max(0, s.rows.findIndex(r => r.name === name)) % PALETTE.length]
     const free = Math.max(0, s.max - s.total)
 
     return (

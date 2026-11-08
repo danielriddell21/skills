@@ -3,15 +3,19 @@ import type { Component } from '../types'
 
 import { bars, matrix, radar, sankey, scatter, sequence, swimlane, timeline, treemap } from './charts'
 import { compare, flowGraph, graph, storyboard, tourStep, zoomTo } from './graphs'
-import { MAX_SVG } from './paint'
+import { MAX_SVG, usePalette } from './paint'
+import type { Palette } from './paint'
 
-export { wrap } from './paint'
+export { paletteFor, wrap } from './paint'
+export type { Palette } from './paint'
 
 /**
  * The component as SVG, or undefined when it reads better as text (a tree) or is too big to send.
- * `step` picks a tour's stop; `path` the part a zoomable graph is opened into.
+ * `step` picks a tour's stop; `path` the part a zoomable graph is opened into; `palette` the Claude theme's
+ * colours (absent: follow the OS light/dark preference).
  */
-export const svgFor = (c: Component, step = -1, path = ''): string | undefined => {
+export const svgFor = (c: Component, step = -1, path = '', palette?: Palette): string | undefined => {
+  usePalette(palette)
   const out = draw(c, step, path)
   return out && out.length <= MAX_SVG ? out : undefined
 }
@@ -20,7 +24,7 @@ const draw = (c: Component, step: number, path: string): string | undefined => {
   switch (c.type) {
     case 'graph': {
       const z = zoomTo(c, path)
-      return graph({ ...c, title: [c.title, ...z.trail].filter(Boolean).join(' › ') || undefined, nodes: z.nodes, edges: z.edges })
+      return graph({ ...c, nodes: z.nodes, edges: z.edges })
     }
     case 'compare':
       return compare(c)

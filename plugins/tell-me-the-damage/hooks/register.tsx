@@ -82,7 +82,7 @@ export const register: Register = (on, options) => {
 
     const { Box, Text, Button } = $.ui.resolve(e)
     const rest = await next(e)
-    const color = s.reason !== 'answer' || s.tests === 'fail' ? 'red' : 'green'
+    const color = s.reason !== 'answer' || s.tests === 'fail' ? 'error' : 'success'
     const names = s.files.slice(0, 8).map(f => f.split('/').slice(-2).join('/'))
     const chip = (
       <Box key={chipKey(RANK.result, 'result')}>

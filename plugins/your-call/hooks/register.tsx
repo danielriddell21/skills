@@ -80,8 +80,8 @@ const moved = (list: string[], id: string, d: number): string[] => {
 }
 
 const riskTone = (r: PlanRow['risk']): string => {
-  if (r === 'high') return 'red'
-  return r === 'medium' ? 'yellow' : 'green'
+  if (r === 'high') return 'error'
+  return r === 'medium' ? 'warning' : 'success'
 }
 
 const markOf = (many: boolean, on: boolean): string => {
@@ -90,8 +90,8 @@ const markOf = (many: boolean, on: boolean): string => {
 }
 
 const progressTone = (here: boolean, done: boolean): string | undefined => {
-  if (here) return 'cyan'
-  return done ? 'green' : undefined
+  if (here) return 'claude'
+  return done ? 'success' : undefined
 }
 const TOOL = 'mcp__your-call__ask'
 const view = atom({ plugin: 'your-call', key: 'view' } as const, null)
@@ -498,7 +498,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         {keyedLines(lines).map(({ key, line }, i) => (
-          <Text key={`c-${key}`} color={i === 0 ? 'cyan' : undefined} bold={i === 0}>
+          <Text key={`c-${key}`} color={i === 0 ? 'claude' : undefined} bold={i === 0}>
             {line}
           </Text>
         ))}
@@ -525,7 +525,7 @@ export const register: Register = (on, options) => {
 
     return (
       <Box flexDirection="column">
-        <Text bold color="cyan">◆ {pv.title}</Text>
+        <Text bold color="claude">◆ {pv.title}</Text>
         <Text dimColor>{RULE_LINE}</Text>
         {pv.why && <Text> {pv.why}</Text>}
         {pv.rows.map((r, i) => (
@@ -533,7 +533,7 @@ export const register: Register = (on, options) => {
             {i > 0 && <Text> </Text>}
             {r.auto ? (
               <Box>
-                <Text color="green">✓ {r.label}  </Text>
+                <Text color="success">✓ {r.label}  </Text>
                 <Text dimColor>auto-approved (lgtm)</Text>
               </Box>
             ) : (
@@ -630,7 +630,7 @@ export const register: Register = (on, options) => {
       const open = vis.filter(i => !isComplete(v.steps[i], v.picks))
       return (
         <Box flexDirection="column">
-          <Text bold color="cyan">◆ {v.title}: review</Text>
+          <Text bold color="claude">◆ {v.title}: review</Text>
           <Text dimColor>{RULE_LINE}</Text>
           {vis.map(i => {
             const s = v.steps[i]
@@ -638,7 +638,7 @@ export const register: Register = (on, options) => {
             const label = labelsFor(s, v.picks[s.id] ?? [], v.others).join(', ')
             return (
               <Box key={`rl-${s.id}`}>
-                <Text color={done ? 'green' : 'yellow'}>{done ? '✓ ' : '○ '}</Text>
+                <Text color={done ? 'success' : 'warning'}>{done ? '✓ ' : '○ '}</Text>
                 <Button
                   key={`rev-${s.id}`}
                   label={`${s.question} -> ${label || '(unanswered)'}`}
@@ -672,7 +672,7 @@ export const register: Register = (on, options) => {
     return (
       <Box flexDirection="column">
         <Box>
-          <Text bold color="cyan">◆ {v.title}{'  '}</Text>
+          <Text bold color="claude">◆ {v.title}{'  '}</Text>
           {many &&
             vis.map(i => {
               const s = v.steps[i]
@@ -691,7 +691,7 @@ export const register: Register = (on, options) => {
 
         <Text bold> {step.question}</Text>
         <Text> </Text>
-        {step.why && recommended && <Text color="green">★ {step.why}</Text>}
+        {step.why && recommended && <Text color="success">★ {step.why}</Text>}
 
         {step.audience && (
           <Box flexDirection="column">
@@ -723,7 +723,7 @@ export const register: Register = (on, options) => {
                 </Box>
               )
             })}
-            <Text color="yellow">
+            <Text color="warning">
               weighted: {step.options.map(o => `${o.id === wt.leader ? '★ ' : ''}${o.label} ${wt.totals[o.id]}`).join(' | ')}
             </Text>
             {!step.measured && <Text dimColor>scores are Claude's estimates, not measurements</Text>}
@@ -740,7 +740,7 @@ export const register: Register = (on, options) => {
                   </Text>
                   <Button key={`u-${id}`} label="Up" onPress={() => move(id, -1)} />
                   <Button key={`d-${id}`} label="Down" onPress={() => move(id, 1)} />
-                  {o?.recommended && <Text color="green"> ★ recommended</Text>}
+                  {o?.recommended && <Text color="success"> ★ recommended</Text>}
                 </Box>
               )
             })
@@ -759,7 +759,7 @@ export const register: Register = (on, options) => {
                   ) : (
                     <Box>
                       <Button key={`p-${o.id}`} label={`${mark} ${o.label}${wt?.leader === o.id ? ' ★' : ''}`} onPress={() => toggle(o.id)} />
-                      {o.recommended && <Text color="green"> ★ recommended</Text>}
+                      {o.recommended && <Text color="success"> ★ recommended</Text>}
                       {last.includes(o.id) && <Text dimColor> last time</Text>}
                       <Text> </Text>
                       <Button key={`q-${o.id}`} label="?" onPress={() => explain(o)} />
@@ -767,8 +767,8 @@ export const register: Register = (on, options) => {
                     </Box>
                   )}
                   {!isVetoed && o.detail && <Text dimColor>    {o.detail}</Text>}
-                  {!isVetoed && o.pros?.map(p => <Text key={`+${o.id}${p}`} color="green">    + {p}</Text>)}
-                  {!isVetoed && o.cons?.map(c => <Text key={`-${o.id}${c}`} color="red">    - {c}</Text>)}
+                  {!isVetoed && o.pros?.map(p => <Text key={`+${o.id}${p}`} color="success">    + {p}</Text>)}
+                  {!isVetoed && o.cons?.map(c => <Text key={`-${o.id}${c}`} color="error">    - {c}</Text>)}
                   {on_ && !auto && Input && (
                     <Input
                       key={`n-${step.id}-${o.id}`}
@@ -835,7 +835,7 @@ export const register: Register = (on, options) => {
           <Button key="regen" label="None fit" onPress={() => finish?.({ regenerate: 'propose different options' })} />
         )}
 
-        {!ready && <Text color="yellow">{step.kind === 'many' ? 'Pick at least one to continue.' : 'Pick an option to continue.'}</Text>}
+        {!ready && <Text color="warning">{step.kind === 'many' ? 'Pick at least one to continue.' : 'Pick an option to continue.'}</Text>}
 
         <Text dimColor>{RULE_LINE}</Text>
         <Box>

@@ -119,7 +119,7 @@ const timeLines = (c: Extract<Component, { type: 'timeline' }>): string[] => {
     `${pad('', w)}  ${pad(tickLabel(lo, c.clock, c.unit), TRACK - 6)}${tickLabel(hi, c.clock, c.unit)}`,
     ...c.items.map(it => {
       const row = new Array<string>(TRACK).fill('·')
-      if (it.end === undefined) row[at(it.start)] = '◆'
+      if (it.end === undefined) row[at(it.start)] = '•'
       else row.fill('█', at(it.start), at(it.end) + 1)
       const when = tickLabel(it.start, c.clock, c.unit) + (it.end === undefined ? '' : '–' + tickLabel(it.end, c.clock, c.unit))
       return `${pad(it.label, w)}  ${row.join('')} ${when}${it.hot ? '  ●' : ''}`
@@ -204,6 +204,14 @@ export const textLines = (c: Component, step = -1, path = ''): string[] => {
     case 'radar':
       return radarLines(c)
   }
+}
+
+/** Every part's `note`, as `Label: note` lines: hover is a bonus, never the only place something is said. */
+export const notesOf = (c: Component, path = ''): string[] => {
+  let nodes: GraphNode[] = []
+  if (c.type === 'graph') nodes = zoomTo(c, path).nodes
+  else if (c.type === 'tour' || c.type === 'storyboard') nodes = c.nodes
+  return nodes.flatMap(n => (n.note ? [`${n.label}: ${n.note}`] : []))
 }
 
 /** One line saying what a picture holds, for `alt` and the terminal's summary. */

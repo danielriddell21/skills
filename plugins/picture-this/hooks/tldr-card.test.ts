@@ -24,10 +24,10 @@ test('a summary card is drawn under its own answer only', { plugins }, async ($,
   await publish($, 1, { type: 'bars', title: 'Options', values: { Redis: 8, Mem: 4 } })
   const m = await mount($)
   expect(await m.find({ text: /the answer/ } as never)).toBeTruthy()
-  expect(await m.find({ text: /≡ TL;DR/ } as never)).toBeTruthy()
+  expect(await m.find({ text: /TL;DR/ } as never)).toBeTruthy()
   expect(await m.find({ text: /Redis +█+░* 8/ } as never)).toBeTruthy()
   const other = await mount($, 'terminal', 'A different answer entirely.')
-  expect(await other.find({ text: /≡ TL;DR/ } as never)).toBeUndefined()
+  expect(await other.find({ text: /TL;DR/ } as never)).toBeUndefined()
 })
 
 test('tree and flow cards; bars as SVG on desktop', { plugins }, async ($, on) => {

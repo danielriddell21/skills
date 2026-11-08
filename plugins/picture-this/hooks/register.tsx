@@ -4,13 +4,16 @@ import type { Hook, Register } from 'claude-code'
 import type { Component } from '../types'
 
 import { answerKey, hasBlock, normalize, splitBlocks } from './spec'
-import { zoomTo } from './graphs'
-import { svgFor } from './svg'
-import { summaryOf, textLines } from './text'
+import { legendOf, zoomTo } from './graphs'
+import { paletteFor, svgFor } from './svg'
+import type { Palette } from './svg'
+import { notesOf, summaryOf, textLines } from './text'
 
 const shown = atom({ plugin: 'picture-this', key: 'shown' } as const, {} as Record<string, Component[]>)
 const steps = atom({ plugin: 'picture-this', key: 'steps' } as const, {} as Record<string, number>)
 const paths = atom({ plugin: 'picture-this', key: 'paths' } as const, {} as Record<string, string>)
+// The person's Claude theme (the /config `theme` row), so pictures match the app, not the OS.
+const theme = atom({ plugin: 'picture-this', key: 'theme' } as const, '')
 const ready = atom({ plugin: 'picture-this', key: 'ready' } as const, false)
 
 export const TOOL = 'mcp__picture-this__show'
@@ -43,9 +46,31 @@ export const keysFor = (labels: string[]): string[] => {
 
 const trim = <T,>(m: Record<string, T>, n: number): Record<string, T> => Object.fromEntries(Object.entries(m).slice(-n))
 
-type Ctx = { el: Record<string, any>; terminal: boolean; steps: Record<string, number>; paths: Record<string, string> }
+type Ctx = { el: Record<string, any>; terminal: boolean; steps: Record<string, number>; paths: Record<string, string>; palette?: Palette }
 
-const titleOf = (c: Component) => c.title
+/** The theme's name from /config, or '' when it cannot be read. */
+async function themeName($: Engine): Promise<string> {
+  const row = await $.config
+    .list()
+    .then(rows => rows.find(r => r.key === 'theme'))
+    .catch(() => undefined)
+  return typeof row?.value === 'string' ? row.value : ''
+}
+
+/** A terminal line's colour, by theme key: the same marks mean the same thing as in Claude's own diffs and lists. */
+export const lineColor = (line: string): string | undefined => {
+  const t = line.trimStart()
+  if (t.startsWith('+ ')) return 'success'
+  if (t.startsWith('− ')) return 'error'
+  if (t.startsWith('~ ')) return 'warning'
+  return line.includes('●') ? 'claude' : undefined
+}
+
+/** The heading over a picture: its title, and where a zoom has gone. */
+const headingOf = (c: Component, path: string): string | undefined => {
+  const trail = c.type === 'graph' && path ? zoomTo(c, path).trail : []
+  return [c.title, ...trail].filter(Boolean).join(' › ') || undefined
+}
 
 /** Next tour step from `cur` by `d`, inside -1 (overview) … n-1. */
 export const stepBy = (cur: number, d: number, n: number): number => Math.max(-1, Math.min(n - 1, cur + d))
@@ -112,30 +137,57 @@ function drawPiece($: Engine, ctx: Ctx, c: Component, k: string) {
   return zoomable(c) ? drawZoom($, ctx, c, k) : drawPicture(ctx, c, k)
 }
 
+/**
+ * One picture as Claude draws its own output: the title and legend as host Text (selectable, in the reply's type),
+ * the drawing in a rounded frame on desktop, VS Code and mobile (a card there), theme-key colours in the terminal,
+ * and every note in text too, since hover is a bonus.
+ */
 function drawPicture(ctx: Ctx, c: Component, k: string, step = -1, path = '') {
   const { Box, Text, Svg } = ctx.el
-  const alt = `${c.title ?? c.type}: ${summaryOf(c)}`
+  const heading = headingOf(c, path)
+  const alt = `${heading ?? c.type}: ${summaryOf(c)}`
+  const legend = legendOf(c)
+  const notes = notesOf(c, path)
   // Interactive: hover outlines, <title> tooltips and SMIL replay work on desktop and mobile; VS Code draws an image.
-  const svg = !ctx.terminal && Svg ? svgFor(c, step, path) : undefined
-  if (svg) return <Svg key={k} source={svg} alt={alt} isInteractive />
-  const lines = textLines(c, step, path)
+  const svg = !ctx.terminal && Svg ? svgFor(c, step, path, ctx.palette) : undefined
+  const lines = svg ? [] : textLines(c, step, path)
+  const body = svg ? (
+    <Svg key="svg" source={svg} alt={alt} isInteractive />
+  ) : (
+    <Box key="lines" flexDirection="column">
+      {keysFor(lines).map((key, j) => (
+        <Text key={key} color={lineColor(lines[j] ?? '')}>
+          {lines[j]}
+        </Text>
+      ))}
+    </Box>
+  )
+  const frame = ctx.terminal ? {} : { borderStyle: 'round', borderColor: 'subtle', paddingX: 1 }
   return (
     <Box key={k} flexDirection="column">
-      {titleOf(c) ? (
+      {heading ? (
         <Text key="h" bold>
-          {titleOf(c)}
+          {heading}
         </Text>
       ) : null}
-      {keysFor(lines).map((key, j) => (
-        <Text key={key} color={lines[j]?.includes('●') ? 'yellow' : undefined}>
-          {lines[j]}
+      <Box key="f" flexDirection="column" {...frame}>
+        {body}
+      </Box>
+      {legend ? (
+        <Text key="lg" dimColor>
+          {legend}
+        </Text>
+      ) : null}
+      {keysFor(notes).map((key, j) => (
+        <Text key={`nt-${key}`} dimColor>
+          {notes[j]}
         </Text>
       ))}
     </Box>
   )
 }
 
-const skippedText = (n: number) => (n === 1 ? '(1 piece could not be drawn)' : `(${n} pieces could not be drawn)`)
+const skippedText = (n: number) => (n === 1 ? '1 picture skipped (invalid JSON or an unknown type)' : `${n} pictures skipped (invalid JSON or an unknown type)`)
 
 /** One block of components; `scope` keeps each block's keys (and tour steps) apart. */
 async function drawBlock($: Engine, e: RenderEvent, el: Record<string, any>, scope: string, components: Component[], pending: boolean, skipped: number) {
@@ -145,13 +197,14 @@ async function drawBlock($: Engine, e: RenderEvent, el: Record<string, any>, sco
     terminal: e.surface === 'terminal',
     steps: components.some(c => c.type === 'tour') ? await read($, steps) : {},
     paths: components.some(zoomable) ? await read($, paths) : {},
+    palette: e.surface === 'terminal' ? undefined : paletteFor(await read($, theme)),
   }
   return (
     <Box key={`blk-${scope}`} flexDirection="column" gap={1}>
       {components.map((c, i) => drawPiece($, ctx, c, `${scope}#${i}`))}
       {pending && (
         <Text key="pending" dimColor>
-          drawing…
+          Drawing…
         </Text>
       )}
       {skipped > 0 && !pending && (
@@ -164,23 +217,29 @@ async function drawBlock($: Engine, e: RenderEvent, el: Record<string, any>, sco
 }
 
 /** A ```ui or ```viz answer drawn as prose and pictures, with any too-long-didnt-read card for it underneath. */
-async function drawMessage($: Engine, e: RenderEvent, text: string, next: () => Promise<unknown>) {
+async function drawMessage($: Engine, e: Extract<RenderEvent, { component: 'AssistantMessage' }>, text: string, next: (e: Extract<RenderEvent, { component: 'AssistantMessage' }>) => Promise<unknown>) {
   const key = answerKey(text)
   const card = ((await $.state.get({ plugin: 'too-long-didnt-read', key: 'cards' })).value ?? []).findLast(c => c.key === key)
   const el = $.ui.resolve(e) as unknown as Record<string, any>
-  const { Box, Text, Markdown } = el
+  const { Box, Text } = el
 
   let body: unknown
   if (hasBlock(text)) {
+    // Prose stays Claude's own: each text segment goes back through the host's message drawing (the reply's
+    // bullet on the first), and only the blocks are ours.
     const segments = splitBlocks(text)
+    const first = segments.findIndex(s => s.kind === 'text' && s.text.trim())
     const keys = keysFor(segments.map(s => (s.kind === 'text' ? `t:${s.text.slice(0, 40)}` : `b:${s.block.index}`)))
     const parts = await Promise.all(
-      segments.map((s, i) =>
-        s.kind === 'text' ? <Markdown key={keys[i]} text={s.text} /> : drawBlock($, e, el, `${key}#${s.block.index}`, s.block.components, s.block.pending, s.block.skipped),
-      ),
+      segments.map(async (s, i) => {
+        if (s.kind === 'block') return drawBlock($, e, el, `${key}#${s.block.index}`, s.block.components, s.block.pending, s.block.skipped)
+        if (!s.text.trim()) return null
+        const prose = await next({ ...e, props: { ...e.props, text: s.text.trim(), isFirstOfReply: e.props.isFirstOfReply && i === first } })
+        return <Box key={keys[i]}>{prose}</Box>
+      }),
     )
     body = <Box flexDirection="column">{parts}</Box>
-  } else body = await next()
+  } else body = await next(e)
 
   if (!card) return body
   const viz = normalize(card.viz)
@@ -189,8 +248,8 @@ async function drawMessage($: Engine, e: RenderEvent, text: string, next: () => 
       {body}
       {viz && (
         <Box key="tldr-card" flexDirection="column">
-          <Text bold color="cyan">
-            ≡ TL;DR
+          <Text bold color="claude">
+            TL;DR
           </Text>
           {await drawBlock($, e, el, `tldr:${card.id}`, [viz], false, 0)}
         </Box>
@@ -215,8 +274,18 @@ export const register: Register = on => {
         required: ['components'],
       },
     })
+    const name = await themeName($)
+    await update($, theme, () => name)
     await update($, ready, () => true)
     return next(e)
+  })
+
+  // The person changed theme in /config: redraw pictures in the new one.
+  on('config.set', { key: 'theme' }, async ($, e, next) => {
+    const r = await next(e)
+    const name = await themeName($)
+    await update($, theme, () => name)
+    return r
   })
 
   on('prompt.compose', async ($, e, next) => {
@@ -234,11 +303,12 @@ export const register: Register = on => {
     return { result: { shown: components.length, types: components.map(c => c.type), skipped: list.length - components.length } }
   })
 
+  // The row stays the host's own (running, error, interrupted, ctrl+o all as Claude draws them); only the input it
+  // shows is cut to the title, since the components are drawn as the result.
   on('ui.render', { component: 'ToolUse' }, ($, e, next) => {
     if (e.props.tool !== TOOL) return next(e)
-    const { Text } = $.ui.resolve(e)
     const title = (e.props.input as { title?: string } | undefined)?.title
-    return <Text dimColor>▣ picture: {title ?? 'drawing'}</Text>
+    return next({ ...e, props: { ...e.props, input: { title: title ?? 'picture' } } })
   })
 
   on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
@@ -251,6 +321,6 @@ export const register: Register = on => {
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     const text = e.props.text
     if (!hasBlock(text) && !((await $.state.get({ plugin: 'too-long-didnt-read', key: 'cards' })).value ?? []).length) return next(e)
-    return (await drawMessage($, e, text, () => next(e))) as never
+    return (await drawMessage($, e, text, next)) as never
   })
 }

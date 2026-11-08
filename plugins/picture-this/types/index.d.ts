@@ -56,6 +56,8 @@ declare module 'claude-code' {
       steps: Record<string, number>
       // Which part each zoomable graph is opened into, by its key: node ids joined by '/', '' at the top.
       paths: Record<string, string>
+      // The person's Claude theme name from /config ('' when unknown: pictures follow the OS then).
+      theme: string
       ready: boolean
     }
     // Published by too-long-didnt-read: summary charts drawn under the answer they belong to.

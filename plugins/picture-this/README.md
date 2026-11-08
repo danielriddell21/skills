@@ -36,10 +36,18 @@ Claude Code is not HTML. A mod returns a tree of the host's own elements, and ea
 Limits that shaped this version:
 
 - **No HTML or script in the thread.** SVG markup is isolated (≤128 KB, scripts and handlers stripped). Rich, zoomable pages belong in the side panel (`SendUserFile`) or an Artifact, not the thread.
-- **No theme tokens.** An SVG cannot read the app's colours, so each drawing carries a `<style>` with a `prefers-color-scheme: dark` override.
+- **No theme keys inside an SVG.** An SVG cannot read Claude's theme, so the plugin reads your theme from `/config` (and again when you change it) and writes that theme's colours into each drawing: the `claude` accent for hot parts and the lit path, `subtle` lines, diff colours that turn blue and orange in colour-blind themes. An unknown theme falls back to the OS light/dark preference. The colour values approximate Claude Code's own; the host offers no way to look them up.
 - **Markdown is the most native form.** Every surface draws a markdown table as it draws a reply, so tables, matrices and cards are plain markdown now, not components.
 - **Mermaid is not drawn in the thread.** Markdown fences show as code. The side panel draws `.mmd` files, so big diagrams go there.
 - **Choices are better native.** AskUserQuestion (with option previews) and `your-call` replace the old `choice` / `send` buttons.
+
+## Looking like Claude, not the OS
+
+- Your reply stays Claude's: prose around a picture goes back through the host's own message drawing (the reply bullet included); only the picture is the plugin's.
+- The `show` tool's row is the host's own row (running, error, interrupted, ctrl+o); only its input is cut to the title.
+- Titles, legends and notes are host text, in the reply's own type, selectable; the drawing sits in a rounded `subtle` frame (a card on mobile).
+- Terminal colours are theme keys: `claude` for ●, `success` / `error` / `warning` for `+ − ~`.
+- Buttons are plain host buttons; captions are host markdown; the offer is AskUserQuestion.
 
 ## What changed in 0.7.0
 

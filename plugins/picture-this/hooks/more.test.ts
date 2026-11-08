@@ -4,7 +4,7 @@ import type { Component } from '../types'
 
 import { diffPanel, zoomTo } from './graphs'
 import { normalize, timeOf } from './spec'
-import { svgFor } from './svg'
+import { paletteFor, svgFor } from './svg'
 import { textLines } from './text'
 
 const N = (ids: string[]) => ids.map(id => ({ id, label: id.toUpperCase() }))
@@ -65,4 +65,13 @@ test('times: numbers, clock times and dates, one clock per timeline', () => {
   expect(timeOf(5)).toEqual({ v: 5, clock: 'num' })
   expect(timeOf('2026-03-14')?.clock).toBe('date')
   expect(normalize({ type: 'timeline', items: [{ label: 'a', start: 1 }, { label: 'b', start: '09:00' }] })).toBeUndefined()
+})
+
+test('palette: the Claude theme picks colours; colour-blind themes never put green against red; unknown follows the OS', () => {
+  expect(paletteFor('dark')?.text).toBe('#ececec')
+  expect(paletteFor('light-daltonized')?.add).toBe('#0066cc')
+  expect(paletteFor('auto')).toBeUndefined()
+  const g = normalize({ type: 'graph', nodes: ['a', 'b'], edges: [['a', 'b']] }) as Component
+  expect(svgFor(g, -1, '', paletteFor('dark'))).not.toContain('prefers-color-scheme')
+  expect(svgFor(g)).toContain('prefers-color-scheme:dark')
 })

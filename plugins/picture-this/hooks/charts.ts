@@ -17,7 +17,7 @@ export const bars = (c: Of<'bars'>) => {
       const y = y0 + i * 26
       const w = Math.max(2, Math.round((n / max) * 220))
       const value = fmtNum(n) + (c.unit ? ' ' + c.unit : '')
-      return `${text(0, y + 12, k)}<rect x="${r1(lw)}" y="${y}" width="${w}" height="16" rx="4" fill="${SERIES[0]}">${tip(k + ': ' + value)}</rect>${text(lw + w + 6, y + 12, value, '', 't')}`
+      return `${text(0, y + 12, k)}<rect x="${r1(lw)}" y="${y}" width="${w}" height="16" rx="4" style="fill:${SERIES[0]}">${tip(k + ': ' + value)}</rect>${text(lw + w + 6, y + 12, value, '', 't')}`
     })
     .join('')
   return svg(lw + 300, y0 + rows.length * 26 + 4, body, c.title)
@@ -37,7 +37,7 @@ export const scatter = (c: Of<'scatter'>) => {
       const cx = sx(p.x)
       const cy = sy(p.y)
       const left = cx > x0 + w * 0.65
-      return `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="6" fill="${SERIES[0]}">${tip(p.label + ': ' + fmtNum(p.x) + ', ' + fmtNum(p.y))}</circle>${text(left ? cx - 10 : cx + 10, cy + 4, p.label, left ? END : '', 't')}`
+      return `<circle cx="${r1(cx)}" cy="${r1(cy)}" r="6" style="fill:${SERIES[0]}">${tip(p.label + ': ' + fmtNum(p.x) + ', ' + fmtNum(p.y))}</circle>${text(left ? cx - 10 : cx + 10, cy + 4, p.label, left ? END : '', 't')}`
     })
     .join('')
   const axes = `<rect class="ln" x="${x0}" y="${y0}" width="${w}" height="${h}" fill="none"/>${text(x0 + w / 2, y0 + h + 18, c.x + ' →', MID)}${text(12, y0 + h / 2, c.y + ' →', MID + ' transform="rotate(-90 12 ' + r1(y0 + h / 2) + ')"')}`
@@ -68,10 +68,10 @@ export const radar = (c: Of<'radar'>) => {
       const vs = c.series[k] ?? []
       const color = SERIES[s % SERIES.length]
       const pts = vs.map((v, i) => pt(i, v).map(r1).join(',')).join(' ')
-      return `<polygon points="${pts}" fill="${color}" fill-opacity=".14" stroke="${color}" stroke-width="2">${tip(k + ': ' + c.axes.map((a, i) => `${a} ${fmtNum(vs[i] ?? 0)}`).join(', '))}</polygon>`
+      return `<polygon points="${pts}" style="fill:${color};fill-opacity:.14;stroke:${color}" stroke-width="2">${tip(k + ': ' + c.axes.map((a, i) => `${a} ${fmtNum(vs[i] ?? 0)}`).join(', '))}</polygon>`
     })
     .join('')
-  const legend = names.map((k, s) => `<rect x="${330}" y="${y0 + s * 20}" width="10" height="10" rx="2" fill="${SERIES[s % SERIES.length]}"/>${text(346, y0 + 9 + s * 20, k, '', 't')}`).join('')
+  const legend = names.map((k, s) => `<rect x="${330}" y="${y0 + s * 20}" width="10" height="10" rx="2" style="fill:${SERIES[s % SERIES.length]}"/>${text(346, y0 + 9 + s * 20, k, '', 't')}`).join('')
   return svg(330 + Math.max(...names.map(k => textW(k, 11))) + 24, cy + R + 30, rings + spokes + shapes + legend, c.title)
 }
 
@@ -108,7 +108,7 @@ export const sequence = (c: Of<'sequence'>) => {
       const at = r1(i * BEAT)
       const k = `0;${r1((i * BEAT) / total)};${r1((i * BEAT + 0.3) / total)};1`
       const fade = `<animate attributeName="opacity" values="0;0;1;1" keyTimes="${k}" dur="${r1(total)}s" begin="0s;replay.click" fill="freeze"/>`
-      const dot = s.from === s.to ? '' : `<circle r="4" fill="${SERIES[0]}" opacity="0"><animate attributeName="cx" from="${r1(x1)}" to="${r1(x2)}" begin="${at}s;replay.click+${at}s" dur="${BEAT * 0.8}s"/><animate attributeName="opacity" values="1;1;0" begin="${at}s;replay.click+${at}s" dur="${BEAT * 0.8}s"/><set attributeName="cy" to="${y}"/></circle>`
+      const dot = s.from === s.to ? '' : `<circle r="4" style="fill:${SERIES[0]}" opacity="0"><animate attributeName="cx" from="${r1(x1)}" to="${r1(x2)}" begin="${at}s;replay.click+${at}s" dur="${BEAT * 0.8}s"/><animate attributeName="opacity" values="1;1;0" begin="${at}s;replay.click+${at}s" dur="${BEAT * 0.8}s"/><set attributeName="cy" to="${y}"/></circle>`
       return `<g>${fade}${shape}${dot}</g>`
     })
     .join('')
@@ -172,14 +172,14 @@ export const timeline = (c: Of<'timeline'>) => {
   const rows = c.items
     .map((it: Span, i) => {
       const y = y0 + i * rowH
-      const color = it.hot ? SERIES[1] : SERIES[0]
+      const color = it.hot ? SERIES[0] : SERIES[1]
       const when = tickLabel(it.start, c.clock, c.unit) + (it.end === undefined ? '' : ' → ' + tickLabel(it.end, c.clock, c.unit))
       const label = text(lw - 8, y + 15, it.label, END, it.hot ? 't' : 'm')
       if (it.end === undefined) {
         const [x, m] = [sx(it.start), y + 11]
-        return `${label}<path d="M${r1(x)} ${m - 7} L${r1(x + 7)} ${m} L${r1(x)} ${m + 7} L${r1(x - 7)} ${m} Z" fill="${color}">${tip(it.label + ': ' + when)}</path>`
+        return `${label}<path d="M${r1(x)} ${m - 7} L${r1(x + 7)} ${m} L${r1(x)} ${m + 7} L${r1(x - 7)} ${m} Z" style="fill:${color}">${tip(it.label + ': ' + when)}</path>`
       }
-      return `${label}<rect x="${r1(sx(it.start))}" y="${y + 4}" width="${r1(Math.max(3, sx(it.end) - sx(it.start)))}" height="15" rx="4" fill="${color}">${tip(it.label + ': ' + when)}</rect>`
+      return `${label}<rect x="${r1(sx(it.start))}" y="${y + 4}" width="${r1(Math.max(3, sx(it.end) - sx(it.start)))}" height="15" rx="4" style="fill:${color}">${tip(it.label + ': ' + when)}</rect>`
     })
     .join('')
   return svg(lw + W + 30, y0 + c.items.length * rowH + 6, ticks.join('') + rows, c.title)
@@ -201,7 +201,7 @@ export const matrix = (c: Of<'matrix'>) => {
           const v = c.values[i]?.[j] ?? 0
           const x = lw + j * cell
           const label = v ? text(x + cell / 2, y + cell / 2 + 4, fmtNum(v), MID, v / max > 0.55 ? 't' : 'm', 10) : ''
-          return `<rect class="gr" x="${x}" y="${y}" width="${cell}" height="${cell}" fill="${SERIES[0]}" fill-opacity="${r1((v / max) * 0.85)}">${tip(`${r} × ${k}: ${fmtNum(v)}`)}</rect>${label}`
+          return `<rect class="gr" x="${x}" y="${y}" width="${cell}" height="${cell}" style="fill:${SERIES[0]};fill-opacity:${r1((v / max) * 0.85)}">${tip(`${r} × ${k}: ${fmtNum(v)}`)}</rect>${label}`
         })
         .join('')
       return text(lw - 8, y + cell / 2 + 4, r, END, 't') + cells
@@ -245,14 +245,14 @@ export const sankey = (c: Of<'sankey'>) => {
       b.in += w
       const [x1, x2] = [a.x + NW, b.x]
       const color = SERIES[a.ci % SERIES.length]
-      return `<path d="M${r1(x1)} ${r1(ya)} C${r1((x1 + x2) / 2)} ${r1(ya)} ${r1((x1 + x2) / 2)} ${r1(yb)} ${r1(x2)} ${r1(yb)}" fill="none" stroke="${color}" stroke-opacity=".32" stroke-width="${r1(Math.max(1, w))}">${tip(`${l.from} → ${l.to}: ${fmtNum(l.value)}${c.unit ? ' ' + c.unit : ''}`)}</path>`
+      return `<path d="M${r1(x1)} ${r1(ya)} C${r1((x1 + x2) / 2)} ${r1(ya)} ${r1((x1 + x2) / 2)} ${r1(yb)} ${r1(x2)} ${r1(yb)}" fill="none" style="stroke:${color};stroke-opacity:.32" stroke-width="${r1(Math.max(1, w))}">${tip(`${l.from} → ${l.to}: ${fmtNum(l.value)}${c.unit ? ' ' + c.unit : ''}`)}</path>`
     })
     .join('')
   const last = cols.length - 1
   const nodes = [...pos.entries()]
     .map(([id, p]) => {
       const label = text(p.x + NW + 6, p.y + p.h / 2 + 4, `${id} ${fmtNum(thru(id))}`, '', 't')
-      return `<rect x="${r1(p.x)}" y="${r1(p.y)}" width="${NW}" height="${r1(p.h)}" rx="2" fill="${SERIES[p.ci % SERIES.length]}">${tip(`${id}: ${fmtNum(thru(id))}`)}</rect>${label}`
+      return `<rect x="${r1(p.x)}" y="${r1(p.y)}" width="${NW}" height="${r1(p.h)}" rx="2" style="fill:${SERIES[p.ci % SERIES.length]}">${tip(`${id}: ${fmtNum(thru(id))}`)}</rect>${label}`
     })
     .join('')
   return svg(colX(last) + NW + lw + 30, y0 + H + 10, bands + nodes, c.title)
@@ -282,8 +282,8 @@ export const treemap = (c: Of<'treemap'>) => {
           const h = (v / gv) * (H - 16)
           const name = path.split('/').pop() ?? path
           const fits = gw > textW(name, 10) + 8 && h > 15
-          const fill = hot.has(path) ? SERIES[1] : SERIES[0]
-          const r = `<rect class="gr" x="${r1(x + 1)}" y="${r1(y + 1)}" width="${r1(Math.max(1, gw - 2))}" height="${r1(Math.max(1, h - 2))}" rx="3" fill="${fill}" fill-opacity="${hot.has(path) ? '.75' : '.22'}">${tip(`${path}: ${fmtNum(v)}${c.unit ? ' ' + c.unit : ''}`)}</rect>${fits ? text(x + 6, y + 14, name, '', 't', 10) : ''}`
+          const fill = hot.has(path) ? SERIES[0] : SERIES[1]
+          const r = `<rect class="gr" x="${r1(x + 1)}" y="${r1(y + 1)}" width="${r1(Math.max(1, gw - 2))}" height="${r1(Math.max(1, h - 2))}" rx="3" style="fill:${fill};fill-opacity:${hot.has(path) ? '.75' : '.22'}">${tip(`${path}: ${fmtNum(v)}${c.unit ? ' ' + c.unit : ''}`)}</rect>${fits ? text(x + 6, y + 14, name, '', 't', 10) : ''}`
           y += h
           return r
         })

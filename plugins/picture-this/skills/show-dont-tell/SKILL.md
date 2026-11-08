@@ -75,6 +75,7 @@ Matrices are always a plain markdown table: every surface draws it natively, and
 - Same names in the picture as in the text; short labels; one idea per picture.
 - `hot` only the 1–3 places the complexity lives, and say why in `note`. `heat` only from a real measure (git log, coverage, metrics), named in `heatLabel`.
 - In `compare`, keep ids stable across panels; that is what makes the diff.
+- Put the title in `title`, never as a text node: the host draws it, in the reply's own type. Colours come from the user's Claude theme; never name colours in labels ("the orange box"), name the part.
 - Say when it is your reading or an estimate ("my reading of the code", "scores are my estimates"); never invent data.
 - Built from code you read: name what you left out ("tests and config not shown").
 

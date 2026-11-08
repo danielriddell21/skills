@@ -102,7 +102,7 @@ export const register: Register = (on, options) => {
     const note = g.phase === 'armed' ? ' (next turn)' : auto
     const chip = (
       <Box key={chipKey(RANK.gate, 'lgtm')}>
-        <Text key="lgtm" color={hot ? 'red' : 'green'} bold>
+        <Text key="lgtm" color={hot ? 'error' : 'autoAccept'} bold>
           {hot ? '⚠' : '✓'} lgtm {g.mode}
           {note}{' '}
         </Text>

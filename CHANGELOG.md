@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.7.1
+
+- `picture-this`: fixed the `show` tool failing on every call ("result that does not match its output shape ... expected string, received object"). It now returns its result as a string; the test checks the type, so the mock host can no longer hide it.
+
 ## 0.7.0
 
 - `picture-this` is now about visualising complexity and big ideas. The `show-dont-tell` skill gates on it (6+ linked parts, a cycle or hub, 5+ branching steps or 3+ actors, 4+ states, 3+ options on 3+ criteria, 5+ dependent files), says in one line what makes it complex, offers 2-3 picture options through AskUserQuestion with a text preview each, and draws only the one picked. Diagrams too big for the thread go to the side panel as Mermaid.

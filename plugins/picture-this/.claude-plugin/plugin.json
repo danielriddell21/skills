@@ -1,6 +1,6 @@
 {
   "name": "picture-this",
-  "version": "0.7.0",
+  "version": "0.7.1",
   "description": "Mod: visualise complexity. Claude judges whether something is complex enough for a picture, offers options, and draws the one you pick natively in the thread, static, before/after or guided: graphs, compare panels, tours, storyboards, sequences, swimlanes, timelines, matrices, sankeys, treemaps, radar. Big diagrams go to the side panel as Mermaid",
   "types": "./types/index.d.ts",
   "author": {

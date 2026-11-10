@@ -336,10 +336,10 @@ export const register: Register = on => {
     const raw = (e as unknown as { components?: unknown }).components
     const list = Array.isArray(raw) ? raw.slice(0, 8) : []
     const components = list.flatMap(c => normalize(c) ?? [])
-    if (!components.length) return { result: { shown: 0, error: 'nothing drawable: check each component against the picture-this rule' } }
+    if (!components.length) return { result: JSON.stringify({ shown: 0, error: 'nothing drawable: check each component against the picture-this rule' }) }
     const id = e.tool_use_id ?? `t${Date.now()}`
     await update($, shown, m => trim({ ...m, [id]: components }, MAX_SHOWN))
-    return { result: { shown: components.length, types: components.map(c => c.type), skipped: list.length - components.length } }
+    return { result: JSON.stringify({ shown: components.length, types: components.map(c => c.type), skipped: list.length - components.length }) }
   })
 
   // The row stays the host's own (running, error, interrupted, ctrl+o all as Claude draws them); only the input it
